@@ -9,7 +9,8 @@
       "Bash(python3 *coordinator/client.py unsubscribe*)",
       "Bash(python3 *coordinator/client.py subscriptions*)",
       "Bash(COORDINATOR_URL=* python3 *coordinator/client.py *)",
-      "Bash(python3 *coordinator/serve.py --status*)"
+      "Bash(python3 *coordinator/serve.py --status*)",
+      "Bash(curl -X POST localhost:8000/api/digest:*)"
     ]
   },
   "autoMode": {
@@ -21,7 +22,8 @@
       "$defaults",
       "Running tools/agent-coordinator/coordinator/client.py subcommands (send, reply, claim, read, subscribe, unsubscribe, subscriptions) against the team's coordinator URL",
       "Checking the local coordinator with serve.py --status",
-      "Editing files under tools/agent-coordinator/ and docs/ in this repo"
+      "Editing files under tools/agent-coordinator/ and docs/ in this repo",
+      "POSTing to the local RxSolve API at localhost:8000/api/digest to send the pharmacist digest to the user's own registered phone during AGT-07 verification"
     ],
     "soft_deny": [
       "$defaults",
