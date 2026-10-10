@@ -3,10 +3,13 @@
  * Entitlement text comes from the agent model when a key is set (fixture text otherwise), the PDFs are
  * rendered locally into out/evidence/, and completeness is scored against the PBM spec plus state extras.
  */
+import { mkdir } from "node:fs/promises";
+import { join } from "node:path";
 import type { Claim, Evidence, Verdict } from "@rxsolve/contracts";
 import { invoice, spec, statute } from "../reference";
 import { resolveEntitlement, type Ask } from "./entitlement";
 import { appealPdf, EVIDENCE_DIR, invoicePdf, writePacket } from "./packet";
+import { renderPdf } from "./pdf";
 
 export type StateRules = Record<string, string[]>;
 export type BuildOpts = { ask?: Ask; outDir?: string; stateRules?: StateRules };
@@ -80,5 +83,39 @@ export async function buildEvidence(claim: Claim, verdict: Verdict, opts: BuildO
 export function withDocument(ev: Evidence, pbm: string, field: string, value: unknown, stateRules?: StateRules): Evidence {
   const fields = { ...ev.fields, [field]: value };
   const { present, completeness } = score(fields, requiredFor(pbm, String(fields.state ?? ""), stateRules));
-  return { ...ev, fields, required_fields_present: present, completeness, attachments: [...ev.attachments, `${field}_${ev.claim_id}.pdf`] };
+  return { ...ev, fields, required_fields_present: present, completeness, attachments: [...new Set([...ev.attachments, `${field}_${ev.claim_id}.pdf`])] };
+}
+
+export type RemediationDoc = { field: string; value: string; text: string };
+
+/**
+ * Adds a wholesaler document to the packet: renders it to a real PDF, rescores, and re-renders the
+ * appeal letter (and invoice line) so the refiled packet no longer lists the field as missing.
+ */
+export async function rebuildWithDocument(claim: Claim, ev: Evidence, doc: RemediationDoc, opts: BuildOpts = {}): Promise<Evidence> {
+  const dir = opts.outDir ?? EVIDENCE_DIR;
+  const next = withDocument(ev, claim.pbm, doc.field, doc.value, opts.stateRules);
+  const what = doc.field.replaceAll("_", " ");
+  await mkdir(dir, { recursive: true });
+  await Bun.write(
+    join(dir, `${doc.field}_${claim.claim_id}.pdf`),
+    renderPdf(
+      [`WHOLESALER DOCUMENT: ${what}`, "", `Claim ${claim.claim_id}   NDC ${claim.ndc}   Qty ${claim.qty}`, `${what}: ${doc.value}`, "", "Wholesaler message:", doc.text],
+      `${what} ${claim.claim_id}`,
+    ),
+  );
+
+  const inv = invoice(claim.ndc);
+  const line = inv && doc.field in inv ? { ...inv, [doc.field]: doc.value } : inv;
+  const required = requiredFor(claim.pbm, claim.state, opts.stateRules);
+  const verdict: Verdict = {
+    claim_id: claim.claim_id, verdict: "UNDERWATER", delta: ev.delta, benchmark_used: null, appeal_deadline: ev.appeal_deadline, confidence: 1,
+  };
+  const input = {
+    claim, verdict, invoice: line, citation: ev.statute, entitlement: ev.entitlement, windowText: windowText(claim.state),
+    present: next.required_fields_present, missing: required.filter((f) => !next.required_fields_present.includes(f)),
+    specVersion: ev.spec_version, pbm: claim.pbm,
+  };
+  await writePacket(dir, claim.claim_id, invoicePdf(input), appealPdf(input));
+  return next;
 }

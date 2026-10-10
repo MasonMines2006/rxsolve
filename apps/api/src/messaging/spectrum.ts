@@ -6,8 +6,10 @@
  */
 import { Spectrum, voice } from "spectrum-ts";
 import { imessage } from "spectrum-ts/providers/imessage";
+import { whatsappBusiness } from "spectrum-ts/providers/whatsapp-business";
 import type { MessageChannel } from "@rxsolve/contracts";
 import { config } from "../config";
+import { sameContact } from "./inbox";
 
 type Inbound = (m: { channel: MessageChannel; sender: string; text: string }) => Promise<void>;
 
@@ -25,22 +27,33 @@ export function senderAllowed(sender: string, pharmacist: string): boolean {
   return a !== "" && (a === b || a.endsWith(b) || b.endsWith(a));
 }
 
+/** WhatsApp Business (wholesaler channel); null without all three Meta credentials. */
+function whatsappConfig() {
+  const { WHATSAPP_ACCESS_TOKEN: accessToken, WHATSAPP_PHONE_NUMBER_ID: phoneNumberId, WHATSAPP_APP_SECRET: appSecret } = process.env;
+  return accessToken && phoneNumberId && appSecret ? { accessToken, phoneNumberId, appSecret } : null;
+}
+
 export async function startSpectrum(onInbound: Inbound): Promise<boolean> {
   if (!config.photonProjectId || !config.photonProjectSecret) return false;
+  const whatsappEnv = whatsappConfig();
   app = await Spectrum({
     projectId: config.photonProjectId,
     projectSecret: config.photonProjectSecret,
-    providers: [imessage.config()], // TODO(AGT-06): add WhatsApp Business for the wholesaler
+    // The SDK types providers as a fixed tuple; WhatsApp is appended only when its credentials exist.
+    providers: (whatsappEnv ? [imessage.config(), whatsappBusiness.config(whatsappEnv)] : [imessage.config()]) as [ReturnType<typeof imessage.config>],
   });
   void (async () => {
     for await (const [, message] of app!.messages) {
       if (message.direction !== "inbound" || message.content.type !== "text") continue;
       const sender = message.sender?.id ?? "";
-      if (!senderAllowed(sender, config.pharmacistPhone)) {
+      const whatsapp = String(message.platform).includes("whatsapp");
+      // An iMessage-line sender matching the wholesaler contact is the SMS fallback reply.
+      const sms = !whatsapp && config.wholesalerContact !== "" && sameContact(sender, config.wholesalerContact);
+      if (!whatsapp && !sms && !senderAllowed(sender, config.pharmacistPhone)) {
         console.warn(`spectrum: ignored inbound message from unexpected sender ${sender}`);
         continue;
       }
-      await onInbound({ channel: "imessage", sender, text: message.content.text });
+      await onInbound({ channel: whatsapp ? "whatsapp" : sms ? "sms" : "imessage", sender, text: message.content.text });
     }
   })();
   return true;
@@ -48,7 +61,13 @@ export async function startSpectrum(onInbound: Inbound): Promise<boolean> {
 
 export async function sendViaSpectrum(channel: MessageChannel, to: string, text: string, audio?: Uint8Array) {
   if (!app) throw new Error("spectrum not started");
-  if (channel !== "imessage") throw new Error(`TODO(AGT-06): ${channel} provider not configured`);
+  if (channel === "whatsapp") {
+    if (!whatsappConfig()) throw new Error("whatsapp provider not configured");
+    const wa = whatsappBusiness(app);
+    await (await wa.space.create(await wa.user(to.replace(/\D/g, "")))).send(text);
+    return;
+  }
+  if (channel !== "imessage" && channel !== "sms") throw new Error(`${channel} provider not configured`);
   const im = imessage(app);
   const space = await im.space.create(await im.user(to));
   await space.send(text);
