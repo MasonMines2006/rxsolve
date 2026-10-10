@@ -3,9 +3,11 @@
  * Called by the orchestrator on each denial. Missing field: ask the wholesaler, rebuild the packet
  * with the real document, refile. Disputed with complete evidence: one rebuttal, then escalate.
  * Attempts per claim are bounded and the loop stops at the appeal deadline. Models only word text.
+ * A second dispute calls the PBM rep once when a rep line is configured (AGT-08), else escalates.
  */
 import type { Action, Claim, Decision, Evidence, Ticket } from "@rxsolve/contracts";
 import type { ChannelAdapter } from "../adapters";
+import { PhoneError, phoneConfigured, placeCall, type PhoneOpts, type PhoneResult } from "../adapters/phone";
 import type { Ask } from "./entitlement";
 import { rebuildWithDocument, requiredFor, type BuildOpts } from "./evidence";
 import { fieldFromRaw, rebuttalText } from "./negotiation-text";
@@ -15,10 +17,14 @@ import { requestDocument, wholesalerConfig, type WholesalerOpts } from "./wholes
 export const MAX_REMEDIATIONS = 2;
 export const MAX_REBUTTALS = 1;
 
-export type NegotiationOpts = { ask?: Ask; now?: Date; wholesaler?: WholesalerOpts; build?: BuildOpts };
+export const MAX_CALLS = 1;
 
-const attempts = new Map<string, { remediate: number; rebut: number }>();
-const tally = (id: string) => attempts.get(id) ?? attempts.set(id, { remediate: 0, rebut: 0 }).get(id)!;
+/** `phone` replaces the real call (tests); otherwise a call is placed when a rep line is configured. */
+export type PhoneCaller = (claim: Claim, ev: Evidence, o: PhoneOpts) => Promise<PhoneResult>;
+export type NegotiationOpts = { ask?: Ask; now?: Date; wholesaler?: WholesalerOpts; build?: BuildOpts; phone?: PhoneCaller; phoneOpts?: PhoneOpts };
+
+const attempts = new Map<string, { remediate: number; rebut: number; call: number }>();
+const tally = (id: string) => attempts.get(id) ?? attempts.set(id, { remediate: 0, rebut: 0, call: 0 }).get(id)!;
 
 export function resetNegotiation() {
   attempts.clear();
@@ -56,6 +62,25 @@ async function remediate(claim: Claim, ev: Evidence, field: string, adapter: Cha
   return { kind: "REFILED", ticket: next, evidence };
 }
 
+/** Stretch escalation (AGT-08): call the rep once. The concession is the rep line's rule, not ours. */
+async function escalateByPhone(
+  claim: Claim, ev: Evidence, adapter: ChannelAdapter, ticket: Ticket, o: NegotiationOpts, caller: PhoneCaller,
+): Promise<Action> {
+  const t = tally(claim.claim_id);
+  if (t.call >= MAX_CALLS) return { kind: "ESCALATED", reason: "disputed after rebuttal, supervisor review" };
+  t.call++;
+  let result: PhoneResult;
+  try {
+    result = await caller(claim, ev, { ask: o.ask, now: o.now, appealDeadline: ev.appeal_deadline, ...o.phoneOpts });
+  } catch (e) {
+    return abandon(claim, `phone call failed: ${e instanceof PhoneError ? e.message : String(e)}`);
+  }
+  if (result.status !== "APPROVED") return { kind: "ESCALATED", reason: "rep denied by phone, supervisor review" };
+  const note = `Approved by phone (call ${result.ref}); rep confirmed the $${ev.delta.toFixed(2)} adjustment. Please record it.`;
+  const next = await adapter.reply(ticket, { evidence: ev, note });
+  return { kind: "REFILED", ticket: next, evidence: ev };
+}
+
 export async function onDenial(
   claim: Claim, ev: Evidence, denial: Decision, adapter: ChannelAdapter, ticket: Ticket, opts: NegotiationOpts = {},
 ): Promise<Action> {
@@ -72,7 +97,11 @@ export async function onDenial(
   if (denial.reason === "disputed") {
     if (ev.completeness < 1) return abandon(claim, "disputed and evidence incomplete");
     const t = tally(claim.claim_id);
-    if (t.rebut >= MAX_REBUTTALS) return { kind: "ESCALATED", reason: "disputed after rebuttal, supervisor review" };
+    if (t.rebut >= MAX_REBUTTALS) {
+      const caller = opts.phone ?? (phoneConfigured(opts.phoneOpts?.repUrl) ? placeCall : null);
+      if (!caller) return { kind: "ESCALATED", reason: "disputed after rebuttal, supervisor review" };
+      return escalateByPhone(claim, ev, adapter, ticket, opts, caller);
+    }
     t.rebut++;
     const note = await rebuttalText(ev, denial, opts.ask);
     const next = await adapter.reply(ticket, { evidence: ev, note });
