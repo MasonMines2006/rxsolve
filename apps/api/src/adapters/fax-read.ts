@@ -2,10 +2,9 @@
  * Reads a PBM's returned fax PDF into a Decision. The model (vision over the PDF) is tried when a key is
  * set; with no key or on any model error, the embedded text layer is parsed deterministically.
  */
-import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import type { Decision } from "@rxsolve/contracts";
-import { MODEL } from "../agents/llm";
+import { extract } from "../agents/llm";
 import { config } from "../config";
 import { pdfText } from "./fax-pdf";
 
@@ -40,25 +39,12 @@ export function parseText(lines: string[]): FaxRead | null {
 }
 
 async function readWithModel(pdf: Uint8Array): Promise<FaxRead> {
-  const client = new Anthropic({ apiKey: config.agentApiKey });
   const ask =
-    'Read this PBM reply to a MAC appeal. Reply with JSON only: {"status":"APPROVED"|"DENIED","reason":"missing_field"|"insufficient_evidence"|"disputed"|"window_expired"|"not_eligible"|null,"field":<snake_case missing field or null>,"delta":<approved dollar adjustment or null>,"message":<the PBM decision wording>}';
-  const msg = await client.messages.create({
-    model: MODEL,
-    max_tokens: 1000,
-    system: "You read scanned PBM fax replies for a pharmacy claims recovery system. Return only JSON. Never invent figures.",
-    messages: [{
-      role: "user",
-      content: [
-        { type: "document", source: { type: "base64", media_type: "application/pdf", data: Buffer.from(pdf).toString("base64") } },
-        { type: "text", text: ask },
-      ],
-    }],
+    "Read this PBM reply to a MAC appeal. status is APPROVED or DENIED; reason is the denial reason or null; field is the snake_case missing field or null; delta is the approved dollar adjustment or null; message is the PBM decision wording.";
+  const p = await extract(Schema, ask, {
+    system: "You read scanned PBM fax replies for a pharmacy claims recovery system. Never invent figures.",
+    documents: [{ mimeType: "application/pdf", data: pdf }],
   });
-  const text = msg.content.map((b) => (b.type === "text" ? b.text : "")).join("");
-  const json = text.match(/\{[\s\S]*\}/)?.[0];
-  if (!json) throw new Error("no JSON in model reply");
-  const p = Schema.parse(JSON.parse(json));
   return { status: p.status, reason: p.status === "DENIED" ? p.reason : null, field: p.field, delta: p.delta, raw: p.message };
 }
 
