@@ -67,7 +67,8 @@ TypeScript on Bun (one workspace monorepo), TigerData (Postgres + TimescaleDB, i
 ## Agent coordinator
 
 - Relay URL: `https://patriot-hypnoses-hubcap.ngrok-free.dev` (hosted by naasanov; it is down when that laptop sleeps or the tunnel stops).
-- The three boxes are `naasanov`, `vmshah`, and `aagashe`, one per teammate.
+- The three boxes are `naasanov`, `vmshah`, and `aagashe`, one per teammate. Ownership: `vmshah` is P1 (backend, ledger, PBM Sim), `naasanov` is P2 (research, agents, channels, messaging), `aagashe` is P3 (dashboard, PMS mock, themes).
+- Everyone pushes straight to `main` with no reviews, so stay in your own phase's files. Touching another phase's files needs that owner's approval in a relay message, or ask them to make the change.
 - At the start of every new session, ask the user two things before doing other work: which box they are (`naasanov`, `vmshah`, or `aagashe`), and whether this session should subscribe to the coordinator.
 - If they say yes, set `COORDINATOR_BOX` to their box and run `client.py subscribe` (and `join` first if no token is saved). Agents may use the password: take it from the user or from `COORDINATOR_PASSWORD` in the gitignored `.env`.
 - The password is never written to a committed file, a commit message, or a coordinator message.
