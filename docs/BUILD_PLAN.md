@@ -64,7 +64,7 @@ AGENT_API_KEY=...             # Claude
 DATABASE_URL=postgres://...    # TigerData; empty -> in-memory
 LEDGER_BACKEND=local          # local | nessie
 NESSIE_KEY=...                # classic API: key as ?key= query param
-NESSIE_VERSION=v1             # CONFIRM at INF-01
+NESSIE_VERSION=v1             # confirmed at INF-01: classic API over https
 PHOTON_PROJECT_ID=...         # from `bun create spectrum-project` or the Photon dashboard
 PHOTON_PROJECT_SECRET=...
 ELEVENLABS_API_KEY=...        # stretch; empty -> digest without voice

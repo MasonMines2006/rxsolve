@@ -10,7 +10,7 @@ Update this as work lands. Mark a ticket done when its "Done when" in `TICKETS.m
 
 | Ticket | Owner | Status | Notes |
 |---|---|---|---|
-| INF-01 | P1 | todo | `bun probe`; Photon creds come from the scaffold |
+| INF-01 | P1 | done | Nessie: classic v1 at `https://api.nessieisreal.com`; key valid (201 on a write, a fake key gets 401); `bun probe` is read-only. Photon: `bun api` logs `spectrum: iMessage connected`. Keys and Photon project id go to the group chat by hand, never the relay |
 | INF-02 | P1 | scaffolded | Server, `/ws/live`, db interface done; TigerData backend + hypertables + continuous aggregate written; needs a Tiger Cloud `DATABASE_URL` |
 | INF-03 | P1 | scaffolded | Switch + feed tee + dev door done; seed is 6 claims (needs 60); portal/inbox/fax doors are empty route files |
 | INF-04 | P1 | scaffolded | Local ledger + settlement + 835-style remittance done; `NessieLedger` throws TODO |
@@ -38,7 +38,7 @@ Update this as work lands. Mark a ticket done when its "Done when" in `TICKETS.m
 
 | Integration | Stubbed? | Detail |
 |---|---|---|
-| Nessie | yes (until INF-04) | `LEDGER_BACKEND=local` in-memory double; confirm classic vs v2 at INF-01 |
+| Nessie | yes (until INF-04) | `LEDGER_BACKEND=local` in-memory double; INF-01 confirmed classic v1 over https. The sandbox holds one blank customer from probing (Nessie has no customer delete); INF-04 ignores it |
 | Spectrum iMessage | no (needs creds) | Live when `PHOTON_PROJECT_ID`/`SECRET` are set; shared-plan lines only reach registered project users. Without creds the digest, pings and replies run through the dashboard phone mock (`/api/digest`, `/api/dev/pharmacist-reply`). Set `PHARMACIST_PHONE` to restrict who may send commands |
 | Spectrum WhatsApp (wholesaler) | yes | Wholesaler replies instantly in the channel viewer; needs WhatsApp Business setup in Photon |
 | ElevenLabs | stretch | Not on the core demo path; digest is text-only without a key |

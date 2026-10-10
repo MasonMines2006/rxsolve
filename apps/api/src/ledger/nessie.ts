@@ -1,10 +1,11 @@
 /**
  * Capital One Nessie ledger. Owner: P1 (INF-01 probe, INF-04 implementation).
  *
- * T+0: probe classic vs v2 (DESIGN.md 11.1).
- *   classic: http://api.nessieisreal.com, key as ?key=, money via POST /accounts/{id}/transfers (or /bills)
- *   v2:      /v2/accounts, header auth
- * Record the answer in NESSIE_VERSION and docs/STATUS.md. If transfers are unavailable, use bills.
+ * INF-01 result: classic v1. Base URL https://api.nessieisreal.com (plain http no longer connects), key as ?key=,
+ * money via POST /accounts/{id}/transfers (or /bills). v2 needs signed (SigV4-style) headers; not used.
+ * Reads never reject a key (they are scoped to it), so a bad key first surfaces as 401 on a write.
+ * Every POST with a valid key creates data, even with an empty body or an unknown parent customer id.
+ * If transfers are unavailable, use bills.
  * Keep a map of ledger entity id (PH-MEADOWBROOK, PBM-PORTAL, ...) -> Nessie account _id.
  */
 import type { Transfer } from "@rxsolve/contracts";
