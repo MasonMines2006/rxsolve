@@ -90,6 +90,46 @@ def decide(spec, evidence) -> Decision:
 
 ## P2: Research, Agents, Channels & Messaging
 
+### P2 dependencies and execution waves
+
+| Ticket | Depends on | Notes |
+|---|---|---|
+| RES-01 | none | Feeds the fixtures every other P2 ticket reads |
+| AGT-01 | none | Touches `agents/watcher.ts` only |
+| AGT-07 | none inside P2 | Needs INF-02 and INF-04 (P1) for ledger data; touches `agents/notifier.ts`, `messaging/` |
+| AGT-02 | RES-01 | Statute and spec data come from the fixtures; touches `agents/evidence.ts` |
+| AGT-03 | AGT-02 | Portal adapter; needs the INF-03 portal door (P1) |
+| AGT-04 | AGT-02 | Email adapter; needs the INF-03 inbox door (P1) |
+| AGT-05 | AGT-02 | Fax adapter; needs the INF-03 fax door (P1) |
+| AGT-06 | AGT-02, AGT-03 | One channel through the adapter first, then a second; needs INF-06 (P1) for the PBM_FAX persona |
+| AGT-08 | AGT-06 | Stretch |
+| AGT-09 | AGT-07, UI-05 | Stretch; start only after the demo gate is green |
+
+Waves (tickets in a wave touch disjoint files and run in parallel):
+
+1. RES-01, AGT-01, AGT-07
+2. AGT-02
+3. AGT-03, AGT-04, AGT-05
+4. AGT-06
+5. Stretch: AGT-08, AGT-09
+
+### P2 status
+
+Orchestrator updates this table as work lands. Status: `not started`, `in progress`, `blocked`, `done`.
+
+| Ticket | Status | Notes |
+|---|---|---|
+| RES-01 | not started | Needs web research; fixtures still `TODO(RES-01)` |
+| AGT-01 | not started | CLEAR/UNDERWATER done; MARGINAL agent TODO |
+| AGT-02 | not started | Packet from fixtures; statute extraction and real PDF TODO |
+| AGT-03 | not started | `PortalAdapter` stub |
+| AGT-04 | not started | `EmailAdapter` stub |
+| AGT-05 | not started | `FaxAdapter` stub |
+| AGT-06 | not started | Works through the direct adapter; wholesaler WhatsApp stubbed |
+| AGT-07 | not started | Digest and Spectrum send written; reply commands TODO |
+| AGT-08 | not started | Stretch |
+| AGT-09 | not started | Stretch; `voice.ts` written |
+
 ### RES-01 | T+0 to T+3 | PBM appeal procedure and NCPDP field research
 
 Pull the public MAC appeal procedures for CVS Caremark, Express Scripts, and OptumRx from provider manuals and PBM pages. For each: submission channel(s), required fields, attachments, appeal window, response SLA. Write the result into `apps/api/src/fixtures/specs.json` (our model of each PBM) and `statutes.json` (replace every `TODO(RES-01)`) with the source URL and a version, and mirror what each PBM actually enforces into `apps/pbm-sim/data/personas.json`.
