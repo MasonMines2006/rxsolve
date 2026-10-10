@@ -175,7 +175,24 @@ These shapes live in code in `packages/contracts/src/index.ts` (zod schemas plus
 
 **Claim**
 
-The NCPDP-shaped request and response are carried verbatim under `ncpdp`; the flat fields are derived for the agents. Field IDs are from memory and are verified in RES-01.
+The NCPDP-shaped request and response are carried verbatim under `ncpdp`; the flat fields are derived for the agents. Field IDs and names were verified in RES-01 against the CMS Medicare Part D NCPDP D.0 payer sheet for the GLP-1 Bridge (dated 2026-03-16, https://www.cms.gov/files/document/glp-1-bridge-payer-sheet.pdf):
+
+| Field ID | NCPDP name | Direction |
+|---|---|---|
+| `401-D1` | Date of Service | request |
+| `402-D2` | Prescription/Service Reference Number | request |
+| `407-D7` | Product/Service ID (11-digit NDC, qualifier `436-E1` = 03) | request |
+| `442-E7` | Quantity Dispensed | request |
+| `405-D5` | Days Supply | request |
+| `409-D9` | Ingredient Cost Submitted | request |
+| `426-DQ` | Usual and Customary Charge | request |
+| `112-AN` | Transaction Response Status (`P` paid, `R` rejected) | response |
+| `506-F6` | Ingredient Cost Paid | response |
+| `505-F5` | Patient Pay Amount | response |
+| `509-F9` | Total Amount Paid | response |
+| `511-FB` | Reject Code (count in `510-FA`) | response |
+
+All twelve IDs in the example match the payer sheet. The header response status is a separate field, `501-F1`, so `112-AN` is the per-transaction status.
 
 ```json
 {
@@ -310,6 +327,17 @@ Positioning: RxSolve sits beside the pharmacy's existing claim switch, reading a
 ```
 
 The Nessie deposit references this record's `remittance_id` in its memo.
+
+RES-01 checked the record against public X12 835 5010 material (CMS Medicare carrier 835 companion document, Dec 2004, https://www.cms.gov/files/document/partb835cdpdf; Indiana ISDH 835 5010 companion guide v3.0, Jan 2011, https://www.in.gov/health/cshcs/files/ISDH_Companion_Guide_835_5010.pdf). The record is 835-style, not an 835. The nearest real elements are:
+
+| Our field | Nearest 835 element | Verified |
+|---|---|---|
+| `remittance_id` | `TRN02` check or EFT trace number | name confirmed (ISDH) |
+| `paid_total`, `adjustment` | `BPR02` total actual provider payment amount (payment level); `CLP04` claim payment amount (claim level) | `BPR02` name confirmed; `CLP04` exists and is required (CMS), name not confirmed in a public sheet |
+| `adjustment` as a claim correction | `CAS01` group code, `CAS02` reason code, `CAS03` amount (loop 2100, situational) | segment confirmed; element names not confirmed |
+| recovery posted outside a claim | `PLB03` adjustment reason code and `PLB04` amount (provider-level adjustment) | elements exist (CMS); semantics not confirmed |
+
+A real PBM reverses and rebills (B2 then B3) after an upheld MAC appeal, which produces a new claim payment rather than an "adjustment" field. The record keeps `adjustment` for dashboard clarity. The X12 835 implementation guide itself is paywalled and was not retrieved, so element semantics beyond the table are unverified.
 
 **Live events (`ws://localhost:8000/ws/live`)**
 
@@ -486,13 +514,13 @@ A standalone FastAPI service with its own datastore. It exposes only what a real
 
 Three personas, each modeled on the public MAC appeal procedure of a major PBM (research ticket RES-01). Names on screen are lookalikes, never real logos or brand assets. Demo narration says "modeled on CVS Caremark, Express Scripts, and OptumRx".
 
-| Persona | Modeled on | Channel (design choice, revisit after RES-01) | Style |
-|---|---|---|---|
-| PBM_PORTAL | CVS Caremark | Web portal form | Strict field names, immediate acknowledgement, decision in minutes (demo timing) |
-| PBM_EMAIL | Express Scripts | Email with PDF | Free-text intake, templated reply, denies on missing attachment |
-| PBM_FAX | OptumRx | Fax with cover sheet | Cover-sheet required fields, reply is a scanned PDF |
+| Persona | Modeled on | Demo channel (kept after RES-01) | Real public channels (RES-01) | Style |
+|---|---|---|---|---|
+| PBM_PORTAL | CVS Caremark | Web portal form | Pharmacy Portal MAC Appeals form only | Strict field names, immediate acknowledgement, decision in minutes (demo timing) |
+| PBM_EMAIL | Express Scripts | Email with PDF | Pharmacist Resource Center portal Appeals tab; MAC department email listed as appeal contact; the Cigna form (Express Scripts network) accepts fax or email | Free-text intake, templated reply, denies on missing attachment |
+| PBM_FAX | OptumRx | Fax with cover sheet | Pharmacy Portal spreadsheet only; email only for supporting invoices in AR and TN; no fax | Cover-sheet required fields, reply is a scanned PDF |
 
-The channel mix is our design choice to show breadth. We do not claim any real PBM accepts appeals only through one door.
+RES-01 outcome: the channel assignment is kept as a demo choice to show breadth. Portal matches CVS Caremark. Email is a real secondary door for Express Scripts. Fax is not a current OptumRx door; narration must say the persona uses OptumRx's field set and state rules, not that OptumRx takes fax. Specs per PBM are in `apps/api/src/fixtures/specs.json` with sources.
 
 ### 8.2 Front doors
 
@@ -548,7 +576,7 @@ async def process_claim(claim_id: str) -> Outcome:
     return Outcome("RECOVERED", delta=outcome.delta)             # digest reports it
 
 
-DEADLINES = {"TN": 7, "default": 30}   # business days, per statute
+DEADLINES = {"TN": 7, "NC": 6, "GA": 10, "default": 20}   # business days; lower bound of the statutory calendar-day window (statutes.json)
 
 def deadline_for(state, fill_date) -> date:
     return business_add(fill_date, DEADLINES.get(state, DEADLINES["default"]))
