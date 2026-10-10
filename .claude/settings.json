@@ -1,5 +1,38 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(python3 *coordinator/client.py send*)",
+      "Bash(python3 *coordinator/client.py claim*)",
+      "Bash(python3 *coordinator/client.py read*)",
+      "Bash(python3 *coordinator/client.py subscribe*)",
+      "Bash(python3 *coordinator/client.py unsubscribe*)",
+      "Bash(python3 *coordinator/client.py subscriptions*)",
+      "Bash(COORDINATOR_URL=* python3 *coordinator/client.py *)",
+      "Bash(python3 *coordinator/serve.py --status*)"
+    ]
+  },
+  "autoMode": {
+    "environment": [
+      "$defaults",
+      "The coordinator relay at https://patriot-hypnoses-hubcap.ngrok-free.dev is the team's own mailbox service for agent-to-agent messages, started by the user from tools/agent-coordinator."
+    ],
+    "allow": [
+      "$defaults",
+      "Running tools/agent-coordinator/coordinator/client.py subcommands (send, reply, claim, read, subscribe, unsubscribe, subscriptions) against the team's coordinator URL",
+      "Checking the local coordinator with serve.py --status",
+      "Editing files under tools/agent-coordinator/ and docs/ in this repo"
+    ],
+    "soft_deny": [
+      "$defaults",
+      "Sending the coordinator password, token, or any API key through the coordinator or any other channel",
+      "Starting, stopping, or re-exposing a public tunnel or coordinator service without the user asking"
+    ]
+  },
   "worktree": {
     "bgIsolation": "none"
+  },
+  "enabledPlugins": {
+    "agent-coordinator@agent-coordinator": true
   }
 }

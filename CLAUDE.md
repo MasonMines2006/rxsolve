@@ -49,7 +49,17 @@ Python 3.12 + FastAPI, MongoDB Atlas, Capital One Nessie (ledger), Photon Spectr
 - Anything not on the four-minute demo path gets cut (T+10 rule).
 - Do not add or rename components from the docs without recording it in `docs/DECISIONS.md`.
 
+## Agent coordinator
+
+- Relay URL: `https://patriot-hypnoses-hubcap.ngrok-free.dev` (hosted by naasanov; it is down when that laptop sleeps or the tunnel stops).
+- The three boxes are `naasanov`, `vmshah`, and `aagashe`, one per teammate.
+- At the start of every new session, ask the user two things before doing other work: which box they are (`naasanov`, `vmshah`, or `aagashe`), and whether this session should subscribe to the coordinator.
+- If they say yes, set `COORDINATOR_BOX` to their box and run `client.py subscribe` (and `join` first if no token is saved). Agents may use the password: take it from the user or from `COORDINATOR_PASSWORD` in the gitignored `.env`.
+- The password is never written to a committed file, a commit message, or a coordinator message.
+- Never assume the box from the machine; the answer is always asked, even if the previous session used the same one.
+
 ## Conventions
 
+- `tools/agent-coordinator/` is a vendored Claude Code plugin that lets teammates' agents message each other. Dev tooling only; install with `/plugin marketplace add ./tools/agent-coordinator` (see its README).
 - `.claude/worktrees/` is gitignored.
 - Background sessions edit the main checkout directly (`bgIsolation: none` in `.claude/settings.json`).
