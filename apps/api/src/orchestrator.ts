@@ -46,12 +46,12 @@ export async function processClaim(claimId: string): Promise<Outcome> {
 
   if (!(await getLedger().hasAccount(claim.pharmacy_id))) return done(claimId, "ABANDONED", 0, "no_ledger_account"); // Gate 1
 
-  const verdict = await adjudicate(claim); // Phase 1: no model on CLEAR/UNDERWATER
+  const verdict = await adjudicate(claim); // model only runs on MARGINAL
   await db.claims.patch(claimId, { verdict });
   bus.emit("verdict", claimId, verdict);
   if (verdict.verdict === "CLEAR") return done(claimId, "CLEARED");
   if (verdict.verdict === "MARGINAL") {
-    // Until AGT-01's agent escalation lands, a human decides.
+    // Still MARGINAL means the agent was unavailable or errored, so a human decides.
     await raiseException(claim, `marginal underpayment of $${verdict.delta.toFixed(2)}`);
     return done(claimId, "EXCEPTION", verdict.delta, "marginal");
   }

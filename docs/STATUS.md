@@ -17,7 +17,7 @@ Update this as work lands. Mark a ticket done when its "Done when" in `TICKETS.m
 | INF-05 | P1 | scaffolded | Orchestrator loop runs end to end; deadline clock computed but not ticking on the dashboard |
 | INF-06 | P1 | scaffolded | Engine: missing-field denial + approval work; deny-first-then-concede persona (PBM_FAX) is a TODO |
 | RES-01 | P2 | todo | Replace every `TODO(RES-01)` in `apps/api/src/fixtures/` |
-| AGT-01 | P2 | scaffolded | CLEAR/UNDERWATER done; MARGINAL agent escalation TODO |
+| AGT-01 | P2 | done (tests unrun: bun unavailable in the build sandbox) | CLEAR/UNDERWATER deterministic; MARGINAL resolved via `extract`, stays MARGINAL (pharmacist exception) with no `AGENT_API_KEY` or on model error |
 | AGT-02 | P2 | scaffolded | Packet from fixtures; statute extraction and real PDF TODO |
 | AGT-03 | P2 | todo | `PortalAdapter` stub; `ADAPTER_MODE=real` to use it |
 | AGT-04 | P2 | todo | `EmailAdapter` stub |
