@@ -120,7 +120,7 @@ Orchestrator updates this table as work lands. Status: `not started`, `in progre
 | Ticket | Status | Notes |
 |---|---|---|
 | RES-01 | not started | Needs web research; fixtures still `TODO(RES-01)` |
-| AGT-01 | not started | CLEAR/UNDERWATER done; MARGINAL agent TODO |
+| AGT-01 | done | MARGINAL resolved by agent; falls back to pharmacist exception with no key or on error (tests unrun: bun unavailable) |
 | AGT-02 | not started | Packet from fixtures; statute extraction and real PDF TODO |
 | AGT-03 | not started | `PortalAdapter` stub |
 | AGT-04 | not started | `EmailAdapter` stub |
