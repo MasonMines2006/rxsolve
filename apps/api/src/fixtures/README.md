@@ -5,11 +5,19 @@ deliberately separate: our spec of a PBM can be wrong; the PBM Sim is the ground
 
 | File | Owner | Contents |
 |---|---|---|
-| `specs.json` | P2 (RES-01) | Our versioned model of each PBM's appeal spec: channel, required fields, source URL |
-| `statutes.json` | P2 (RES-01) | Per-state citation, entitlement text, appeal window in business days, regulator |
+| `specs.json` | P2 (RES-01) | Our versioned model of each PBM's appeal spec: channel, required fields, `required_fields_basis` (verified vs modeled), `real_channels`, `sources[]` |
+| `statutes.json` | P2 (RES-01) | Per-state citation, entitlement text, appeal window (`window_calendar_days` as the statute states it, `window_business_days` as the lower bound the deadline clock counts), remedy, regulator, source |
 | `invoices.json` | P1 | Wholesaler invoice lines (X12 810-style) keyed by NDC; `unit_cost` is per unit dispensed |
 | `nadac.json` | P1 | NADAC per-unit fixture (no real NADAC API) |
 | `contracts.json` | P1 | Contract rate per unit, keyed `"<plan>|<ndc>"` |
 | `drugs.json` | P3 | Display names for NDCs on the dashboard and cashier terminal |
 
-Values marked `TODO(RES-01)` are placeholders until the research ticket lands.
+RES-01 is done: every spec and statute carries a cited source and a version. Known caveats:
+
+- Appeal windows: the statute's calendar window is stored next to `window_business_days`, which is the
+  conservative business-day lower bound the deadline clock uses (NC 6, GA 10, default 20; TN 7 as stated).
+- GA (O.C.G.A. 33-64-9) does not key on acquisition cost; its entitlement text says so.
+- CVS Caremark and Express Scripts `required_fields` are modeled, not verified (see `required_fields_basis`).
+
+`apps/api/src/agents/evidence.ts` builds the appeal packet from these files. A spec may carry an optional
+`state_rules` map (state to extra required fields) that is scored on top of `required_fields`.

@@ -121,7 +121,7 @@ Orchestrator updates this table as work lands. Status: `not started`, `in progre
 |---|---|---|
 | RES-01 | done | Cited specs and statutes; D.0 IDs verified; 835 mapping partly unverified; CVS and Express Scripts form fields and Express Scripts window not public (see STATUS) |
 | AGT-01 | done | MARGINAL resolved by agent; falls back to pharmacist exception with no key or on error (tests unrun: bun unavailable) |
-| AGT-02 | not started | Packet from fixtures; statute extraction and real PDF TODO |
+| AGT-02 | done | Entitlement via `extract` with fixture fallback; local appeal and invoice PDFs in `out/evidence/`; completeness vs spec plus state extras; tested for TN, NC, GA, default |
 | AGT-03 | not started | `PortalAdapter` stub |
 | AGT-04 | not started | `EmailAdapter` stub |
 | AGT-05 | not started | `FaxAdapter` stub |
