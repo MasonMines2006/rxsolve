@@ -51,7 +51,7 @@ cashier (dashboard) --B1--> pbm-sim /switch/claim --tee--> api /api/feed/claim
 | Nessie | Local ledger double until INF-04 (`LEDGER_BACKEND=nessie`) |
 | TigerData | Live when `DATABASE_URL` is set (hypertables + a continuous aggregate for the recovery chart); otherwise an in-memory store |
 | Photon Spectrum (iMessage) | Live when `PHOTON_PROJECT_ID`/`PHOTON_PROJECT_SECRET` are set; otherwise the dashboard phone mock shows every message and its reply box drives the same commands (APPROVE, SKIP, DETAILS, PAUSE, RESUME, LIMIT) |
-| WhatsApp to wholesaler | Stubbed: the wholesaler replies instantly in the channel viewer |
+| WhatsApp / SMS to wholesaler | Stubbed unless Photon is connected with `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET` and `WHOLESALER_CONTACT`: the wholesaler replies instantly in the channel viewer (`WHOLESALER_STUB=silent` makes it stay quiet to show the abandon path) |
 | ElevenLabs (stretch) | Voice recap (AGT-09) and phone negotiator (AGT-08) are stretch goals; without keys the digest is text only |
 | Real-PBM adapters | `ADAPTER_MODE=direct` files through the PBM Sim's JSON dev door until the portal/email/fax adapters land |
 

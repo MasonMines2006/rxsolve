@@ -125,7 +125,7 @@ Orchestrator updates this table as work lands. Status: `not started`, `in progre
 | AGT-03 | done | Scripted and Playwright drivers, transcript on every call; tested against a fake door, awaits the P1 portal door per the contract in DECISIONS |
 | AGT-04 | done | Adapter and tests against a fake door; waits on the INF-03 inbox door (contract in DECISIONS) |
 | AGT-05 | done | Adapter tested against a fake fax line; PBM Sim fax door (P1) must match the contract in DECISIONS.md |
-| AGT-06 | not started | Works through the direct adapter; wholesaler WhatsApp stubbed |
+| AGT-06 | done | Remediate and refile tested on direct and fax adapters against fake doors; wholesaler WhatsApp stubbed without creds; portal/email/fax PBM Sim doors (P1) still to be run live |
 | AGT-07 | in progress | Digest, exception asks, reply commands done and tested offline; "done when" needs a digest on a real phone with Photon creds |
 | AGT-08 | not started | Stretch |
 | AGT-09 | not started | Stretch; `voice.ts` written |
