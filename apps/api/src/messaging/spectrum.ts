@@ -15,6 +15,16 @@ let app: Awaited<ReturnType<typeof Spectrum>> | null = null;
 
 export const spectrumReady = () => app !== null;
 
+const normalize = (id: string) => (id.includes("@") ? id.trim().toLowerCase() : id.replace(/\D/g, ""));
+
+/** With PHARMACIST_PHONE set, only that handle may command the notifier; unset allows any sender. */
+export function senderAllowed(sender: string, pharmacist: string): boolean {
+  if (!pharmacist) return true;
+  const a = normalize(sender);
+  const b = normalize(pharmacist);
+  return a !== "" && (a === b || a.endsWith(b) || b.endsWith(a));
+}
+
 export async function startSpectrum(onInbound: Inbound): Promise<boolean> {
   if (!config.photonProjectId || !config.photonProjectSecret) return false;
   app = await Spectrum({
@@ -25,7 +35,12 @@ export async function startSpectrum(onInbound: Inbound): Promise<boolean> {
   void (async () => {
     for await (const [, message] of app!.messages) {
       if (message.direction !== "inbound" || message.content.type !== "text") continue;
-      await onInbound({ channel: "imessage", sender: message.sender?.id ?? "", text: message.content.text });
+      const sender = message.sender?.id ?? "";
+      if (!senderAllowed(sender, config.pharmacistPhone)) {
+        console.warn(`spectrum: ignored inbound message from unexpected sender ${sender}`);
+        continue;
+      }
+      await onInbound({ channel: "imessage", sender, text: message.content.text });
     }
   })();
   return true;
