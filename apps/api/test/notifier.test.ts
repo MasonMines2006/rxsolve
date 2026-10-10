@@ -41,7 +41,7 @@ beforeEach(() => {
   saved = { ...config };
   resetDb();
   resetLedger();
-  Object.assign(config, { mongoUri: "", ledgerBackend: "local", photonProjectId: "", elevenlabsApiKey: "", pharmacistPhone: "" });
+  Object.assign(config, { databaseUrl: "", ledgerBackend: "local", photonProjectId: "", elevenlabsApiKey: "", pharmacistPhone: "" });
   refiled = [];
   setRefileHandler(async (id) => { refiled.push(id); });
 });

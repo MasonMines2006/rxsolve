@@ -4,7 +4,7 @@ const num = (k: string, d: number) => Number(process.env[k] ?? d);
 
 export const config = {
   port: num("API_PORT", 8000),
-  mongoUri: env("MONGO_URI"), // empty -> in-memory store (fine for local dev and tests)
+  databaseUrl: env("DATABASE_URL"), // TigerData (Postgres) connection string; empty -> in-memory store (fine for local dev and tests)
   agentApiKey: env("AGENT_API_KEY"),
 
   ledgerBackend: env("LEDGER_BACKEND", "local") as "local" | "nessie",

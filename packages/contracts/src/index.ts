@@ -170,6 +170,15 @@ export const LedgerSummary = z.object({
 });
 export type LedgerSummary = z.infer<typeof LedgerSummary>;
 
+/** One time bucket of settled recoveries (GET /api/ledger/series). On TigerData it comes from a continuous aggregate. */
+export const RecoveryPoint = z.object({
+  bucket: isoDateTime, // bucket start
+  recovered: z.number(), // remittance adjustments settled in this bucket
+  fees: z.number(),
+  settlements: z.number(),
+});
+export type RecoveryPoint = z.infer<typeof RecoveryPoint>;
+
 // ---------------------------------------------------------------- orchestration
 
 /** Pipeline board columns (DESIGN 12). CLEARED claims never appear on the board. */

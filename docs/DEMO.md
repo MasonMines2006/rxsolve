@@ -15,7 +15,7 @@ Three PBM personas, each modeled on a real PBM's public appeal procedure. Open b
 1. **Portal.** A claim underpays. The browser agent fills the Caremark-style form and uploads the invoice. The PBM denies: wholesaler attestation missing (TN rule).
 2. **Remediate.** The agent requests the attestation from the wholesaler on WhatsApp, receives it, refiles through the same form, and the PBM concedes.
 3. **Email and fax, in parallel.** Two more claims are filed to the Express Scripts-style inbox and the OptumRx-style fax line. They resolve on the dashboard; the fax reply is a scanned PDF the agent reads.
-4. **Ledger.** Remittance adjustments and fee transfers move real Nessie balances.
+4. **Ledger.** Remittance adjustments and fee transfers move real Nessie balances, and the recovered-over-time chart (TigerData continuous aggregate) steps up with each settlement.
 5. **Digest.** The pharmacist's phone receives the daily digest. One word replies. (Stretch: it carries a voice recap.)
 6. **Exception (live).** One claim is outside the standing policy and pings the pharmacist.
 7. **Stretch: phone (ElevenLabs).** On a disputed denial, the agent calls the PBM rep and wins the argument on the statute.
@@ -37,6 +37,7 @@ Three PBM personas, each modeled on a real PBM's public appeal procedure. Open b
 |---|---|
 | Photon | Daily digest and live exception on the pharmacist's iMessage; wholesaler remediation over WhatsApp/SMS |
 | Nessie | Recovery visibly moving real balances between pharmacy, PBM, and platform accounts |
+| TigerData | The recovered-over-time chart climbing live as settlements land, read from a continuous aggregate over the `ledger_events` hypertable (the chart's caption names the source) |
 | ElevenLabs (stretch) | Only if the stretch lands: voice recap in the digest; phone negotiation with the PBM rep |
 | Frutiger Aero track | Flip the dashboard from dark to light to Frutiger Aero live during the run; the PMS mock and pharmacist phone flip with it |
 

@@ -6,6 +6,7 @@ import { ChannelViewer } from "@/components/panels/ChannelViewer";
 import { LedgerPanel } from "@/components/panels/LedgerPanel";
 import { PharmacistPhone } from "@/components/panels/PharmacistPhone";
 import { PipelineBoard } from "@/components/panels/PipelineBoard";
+import { RecoveryChart } from "@/components/panels/RecoveryChart";
 import { RecoveryFeed } from "@/components/panels/RecoveryFeed";
 import { useLive } from "@/lib/live";
 
@@ -22,6 +23,7 @@ export default function Page() {
         <CashierTerminal live={live} />
         <RecoveryFeed live={live} />
         <LedgerPanel live={live} />
+        <RecoveryChart live={live} />
       </section>
       <PipelineBoard live={live} />
       <section style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>

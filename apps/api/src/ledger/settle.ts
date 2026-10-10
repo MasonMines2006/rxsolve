@@ -33,7 +33,10 @@ export async function settleRecovery(claim: Claim, delta: number): Promise<Ledge
   for (const t of transfers) await getLedger().transfer(t);
   const settlement: LedgerSettlement = { event: "RECOVERY_SETTLED", claim_id: claim.claim_id, transfers };
   await getDb().remittances.insert(remittance);
-  await getDb().ledger_events.insert({ ...settlement, pharmacy_id: claim.pharmacy_id });
+  await getDb().ledger_events.insert({
+    ...settlement, pharmacy_id: claim.pharmacy_id, ts: new Date().toISOString(),
+    recovered: transfers[0]!.amount, fees: transfers[1]!.amount,
+  });
   bus.emit("ledger.settled", claim.claim_id, { ...settlement, remittance });
   await emitBalances();
   return settlement;

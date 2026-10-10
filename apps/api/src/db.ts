@@ -1,12 +1,14 @@
 /**
  * Storage (DESIGN.md section 10). Owner: P1.
  *
- * One small Collection interface with two backends: MongoDB Atlas when MONGO_URI is set, in-memory
- * otherwise, so anyone can run the API with no Atlas account. Keep call sites on this interface.
+ * One small Collection interface with two backends: TigerData (Postgres + TimescaleDB) when DATABASE_URL
+ * is set, in-memory otherwise, so anyone can run the API with no cloud account. Keep call sites on this
+ * interface. On Postgres each collection is a table of jsonb documents; the append-only, timestamped
+ * ones are hypertables, and settled recoveries roll up in a continuous aggregate (recoverySeries).
  */
-import { MongoClient, type Db as MongoDb } from "mongodb";
+import { SQL } from "bun";
 import type {
-  ChannelMessage, Claim, Decision, Evidence, LedgerSettlement, Remittance, Stage, Ticket, Verdict,
+  ChannelMessage, Claim, Decision, Evidence, LedgerSettlement, RecoveryPoint, Remittance, Stage, Ticket, Verdict,
 } from "@rxsolve/contracts";
 import { config } from "./config";
 
@@ -44,15 +46,35 @@ class MemoryCollection<T extends Doc> implements Collection<T> {
   }
 }
 
-class MongoCollection<T extends Doc> implements Collection<T> {
-  constructor(private db: MongoDb, private name: string, private key?: keyof T & string) {}
-  private get c() { return this.db.collection(this.name); }
-  async insert(doc: T) { await this.c.insertOne({ ...doc }); }
-  async upsert(doc: T) { await this.c.replaceOne({ [this.key!]: doc[this.key!] }, doc, { upsert: true }); }
-  async patch(k: string, fields: Partial<T>) { await this.c.updateOne({ [this.key!]: k }, { $set: fields }); }
-  async get(k: string) { return (await this.c.findOne({ [this.key!]: k }, { projection: { _id: 0 } })) as T | null; }
+const parse = <T>(v: unknown) => (typeof v === "string" ? JSON.parse(v) : v) as T;
+
+/** Table: key (null for keyless collections), ts (hypertable time column), doc (the record as jsonb). */
+class PgCollection<T extends Doc> implements Collection<T> {
+  constructor(private sql: SQL, private name: string, private key?: keyof T & string) {}
+  private ts(doc: T) { return typeof doc.ts === "string" ? doc.ts : null; }
+  async insert(doc: T) {
+    await this.sql.unsafe(
+      `INSERT INTO ${this.name} (key, ts, doc) VALUES ($1, coalesce($2::timestamptz, now()), $3::text::jsonb)`,
+      [this.key ? doc[this.key] : null, this.ts(doc), JSON.stringify(doc)],
+    );
+  }
+  async upsert(doc: T) {
+    await this.sql.unsafe(
+      `INSERT INTO ${this.name} (key, ts, doc) VALUES ($1, coalesce($2::timestamptz, now()), $3::text::jsonb)
+       ON CONFLICT (key) DO UPDATE SET doc = EXCLUDED.doc`,
+      [doc[this.key!], this.ts(doc), JSON.stringify(doc)],
+    );
+  }
+  async patch(k: string, fields: Partial<T>) {
+    await this.sql.unsafe(`UPDATE ${this.name} SET doc = doc || $2::text::jsonb WHERE key = $1`, [k, JSON.stringify(fields)]);
+  }
+  async get(k: string) {
+    const rows = await this.sql.unsafe(`SELECT doc FROM ${this.name} WHERE key = $1`, [k]);
+    return rows.length ? parse<T>(rows[0].doc) : null;
+  }
   async find(filter: Partial<T> = {}) {
-    return (await this.c.find(filter as Doc, { projection: { _id: 0 } }).toArray()) as unknown as T[];
+    const rows = await this.sql.unsafe(`SELECT doc FROM ${this.name} WHERE doc @> $1::text::jsonb ORDER BY ts`, [JSON.stringify(filter)]);
+    return rows.map((r: { doc: unknown }) => parse<T>(r.doc));
   }
 }
 
@@ -60,6 +82,8 @@ export type ClaimRecord = Claim & { stage?: Stage; reason?: string; verdict?: Ve
 export type AppealRecord = Ticket & { status: string; deadline: string | null; decision?: Decision };
 export type PolicyRecord = { pharmacy_id: string; auto_file_max: number; paused: boolean };
 export type AuditRecord = { claim_id: string; ts: string; stage: Stage; reason?: string };
+/** recovered/fees are the settlement's transfer totals, flattened so the continuous aggregate can sum them. */
+export type LedgerEventRecord = LedgerSettlement & { pharmacy_id: string; ts: string; recovered: number; fees: number };
 
 const SCHEMA = {
   claims: "claim_id",
@@ -72,27 +96,37 @@ const SCHEMA = {
   audit: undefined,
 } as const;
 
+/** Append-only, timestamped collections: TimescaleDB hypertables partitioned on ts. */
+const HYPERTABLES = ["ledger_events", "transcript", "audit"] as const;
+
+/** Demo-scale bucket: a four-minute demo needs several points. A real pharmacy would use '1 hour'. */
+export const RECOVERY_BUCKET_SECONDS = 15;
+
 export type Db = {
   claims: Collection<ClaimRecord>;
   evidence: Collection<Evidence>;
   appeals: Collection<AppealRecord>;
   remittances: Collection<Remittance>;
   policy: Collection<PolicyRecord>;
-  ledger_events: Collection<LedgerSettlement & { pharmacy_id: string }>;
+  ledger_events: Collection<LedgerEventRecord>;
   transcript: Collection<ChannelMessage>;
   audit: Collection<AuditRecord>;
 };
 
 let db: Db | null = null;
+let sql: SQL | null = null;
+let hasRollup = false; // true once the continuous aggregate exists
+
+function pg(): SQL {
+  sql ??= new SQL(config.databaseUrl);
+  return sql;
+}
 
 export function getDb(): Db {
   if (!db) {
     const out: Record<string, Collection<Doc>> = {};
-    if (config.mongoUri) {
-      const mongo = new MongoClient(config.mongoUri).db("rxsolve");
-      for (const [name, key] of Object.entries(SCHEMA)) out[name] = new MongoCollection(mongo, name, key);
-    } else {
-      for (const [name, key] of Object.entries(SCHEMA)) out[name] = new MemoryCollection(key);
+    for (const [name, key] of Object.entries(SCHEMA)) {
+      out[name] = config.databaseUrl ? new PgCollection(pg(), name, key) : new MemoryCollection(key);
     }
     db = out as unknown as Db;
   }
@@ -102,16 +136,69 @@ export function getDb(): Db {
 /** Tests only: start from an empty store. */
 export function resetDb() { db = null; }
 
-export async function ensureIndexes() {
-  if (!config.mongoUri) return;
-  const mongo = new MongoClient(config.mongoUri).db("rxsolve");
-  await mongo.collection("claims").createIndex({ claim_id: 1 }, { unique: true });
-  await mongo.collection("claims").createIndex({ state: 1, "verdict.verdict": 1 });
-  await mongo.collection("claims").createIndex({ fill_date: 1 });
-  await mongo.collection("evidence").createIndex({ claim_id: 1 });
-  await mongo.collection("appeals").createIndex({ status: 1, deadline: 1 });
-  await mongo.collection("ledger_events").createIndex({ claim_id: 1, pharmacy_id: 1 });
-  await mongo.collection("remittances").createIndex({ claim_id: 1 });
-  await mongo.collection("transcript").createIndex({ claim_id: 1, ts: 1 });
-  await mongo.collection("audit").createIndex({ claim_id: 1, ts: 1 });
+/**
+ * Creates tables, indexes, hypertables and the recovery continuous aggregate. Idempotent. On plain
+ * Postgres (no timescaledb extension) the tables still work and recoverySeries buckets in the API.
+ */
+export async function ensureSchema() {
+  if (!config.databaseUrl) return;
+  const s = pg();
+  for (const [name, key] of Object.entries(SCHEMA)) {
+    await s.unsafe(`CREATE TABLE IF NOT EXISTS ${name} (key text, ts timestamptz NOT NULL DEFAULT now(), doc jsonb NOT NULL)`);
+    if (key) await s.unsafe(`CREATE UNIQUE INDEX IF NOT EXISTS ${name}_key ON ${name} (key)`);
+    await s.unsafe(`CREATE INDEX IF NOT EXISTS ${name}_doc ON ${name} USING gin (doc jsonb_path_ops)`);
+  }
+  await s.unsafe(`CREATE INDEX IF NOT EXISTS claims_state_verdict ON claims ((doc->>'state'), (doc->'verdict'->>'verdict'))`);
+  await s.unsafe(`CREATE INDEX IF NOT EXISTS claims_fill_date ON claims ((doc->>'fill_date'))`);
+  await s.unsafe(`CREATE INDEX IF NOT EXISTS appeals_status_deadline ON appeals ((doc->>'status'), (doc->>'deadline'))`);
+
+  try {
+    await s.unsafe(`CREATE EXTENSION IF NOT EXISTS timescaledb`);
+    for (const t of HYPERTABLES) {
+      await s.unsafe(`SELECT create_hypertable('${t}', by_range('ts'), if_not_exists => TRUE, migrate_data => TRUE)`);
+      await s.unsafe(`CREATE INDEX IF NOT EXISTS ${t}_claim_ts ON ${t} ((doc->>'claim_id'), ts DESC)`);
+    }
+    await s.unsafe(`
+      CREATE MATERIALIZED VIEW IF NOT EXISTS recovery_series
+      WITH (timescaledb.continuous, timescaledb.materialized_only = false) AS
+      SELECT time_bucket(INTERVAL '${RECOVERY_BUCKET_SECONDS} seconds', ts) AS bucket,
+             sum((doc->>'recovered')::numeric) AS recovered,
+             sum((doc->>'fees')::numeric) AS fees,
+             count(*) AS settlements
+      FROM ledger_events
+      GROUP BY bucket
+      WITH NO DATA`);
+    await s.unsafe(`SELECT add_continuous_aggregate_policy('recovery_series',
+      start_offset => INTERVAL '7 days', end_offset => INTERVAL '${RECOVERY_BUCKET_SECONDS} seconds',
+      schedule_interval => INTERVAL '1 minute', if_not_exists => TRUE)`);
+    hasRollup = true;
+  } catch (err) {
+    console.warn(`db: TimescaleDB unavailable, using plain Postgres tables (${(err as Error).message})`);
+  }
+}
+
+const cents = (x: number) => Math.round(x * 100) / 100;
+
+/** Settled recoveries per time bucket, oldest first. Real-time: includes rows not yet materialized. */
+export async function recoverySeries(): Promise<RecoveryPoint[]> {
+  if (config.databaseUrl && hasRollup) {
+    const rows = await pg().unsafe(`SELECT bucket, recovered, fees, settlements FROM recovery_series ORDER BY bucket`);
+    return rows.map((r: { bucket: Date; recovered: string; fees: string; settlements: string }) => ({
+      bucket: new Date(r.bucket).toISOString(),
+      recovered: cents(Number(r.recovered)),
+      fees: cents(Number(r.fees)),
+      settlements: Number(r.settlements),
+    }));
+  }
+  const size = RECOVERY_BUCKET_SECONDS * 1000;
+  const buckets = new Map<number, RecoveryPoint>();
+  for (const ev of await getDb().ledger_events.find()) {
+    const b = Math.floor(Date.parse(ev.ts) / size) * size;
+    const p = buckets.get(b) ?? { bucket: new Date(b).toISOString(), recovered: 0, fees: 0, settlements: 0 };
+    p.recovered = cents(p.recovered + ev.recovered);
+    p.fees = cents(p.fees + ev.fees);
+    p.settlements += 1;
+    buckets.set(b, p);
+  }
+  return [...buckets.entries()].sort(([a], [b]) => a - b).map(([, p]) => p);
 }

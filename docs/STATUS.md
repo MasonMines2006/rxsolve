@@ -11,7 +11,7 @@ Update this as work lands. Mark a ticket done when its "Done when" in `TICKETS.m
 | Ticket | Owner | Status | Notes |
 |---|---|---|---|
 | INF-01 | P1 | todo | `bun probe`; Photon creds come from the scaffold |
-| INF-02 | P1 | scaffolded | Server, `/ws/live`, db interface done; needs Atlas `MONGO_URI` |
+| INF-02 | P1 | scaffolded | Server, `/ws/live`, db interface done; TigerData backend + hypertables + continuous aggregate written; needs a Tiger Cloud `DATABASE_URL` |
 | INF-03 | P1 | scaffolded | Switch + feed tee + dev door done; seed is 6 claims (needs 60); portal/inbox/fax doors are empty route files |
 | INF-04 | P1 | scaffolded | Local ledger + settlement + 835-style remittance done; `NessieLedger` throws TODO |
 | INF-05 | P1 | scaffolded | Orchestrator loop runs end to end; deadline clock computed but not ticking on the dashboard |
@@ -28,7 +28,7 @@ Update this as work lands. Mark a ticket done when its "Done when" in `TICKETS.m
 | AGT-09 | P2 | scaffolded | Stretch: digest voice recap; `voice.ts` written, no-ops without a key |
 | UI-01 | P3 | scaffolded | Shell, `/ws/live` hook, state reducer, panel stubs, theme tokens |
 | UI-02 | P3 | scaffolded | Cashier submits a B1 through the switch and shows the badge; dispensing-screen UI TODO |
-| UI-03 | P3 | scaffolded | Feed, pipeline, ledger render live data plainly |
+| UI-03 | P3 | scaffolded | Feed, pipeline, ledger render live data plainly; recovered-over-time chart reads `/api/ledger/series` |
 | UI-04 | P3 | scaffolded | Channel viewer + phone mock (with reply box and digest button) render plainly |
 | UI-05 | P3 | todo | |
 | UI-06 | P3 | todo | README started |
@@ -42,7 +42,7 @@ Update this as work lands. Mark a ticket done when its "Done when" in `TICKETS.m
 | Spectrum iMessage | no (needs creds) | Live when `PHOTON_PROJECT_ID`/`SECRET` are set; shared-plan lines only reach registered project users. Without creds the digest, pings and replies run through the dashboard phone mock (`/api/digest`, `/api/dev/pharmacist-reply`). Set `PHARMACIST_PHONE` to restrict who may send commands |
 | Spectrum WhatsApp (wholesaler) | yes | Wholesaler replies instantly in the channel viewer; needs WhatsApp Business setup in Photon |
 | ElevenLabs | stretch | Not on the core demo path; digest is text-only without a key |
-| MongoDB Atlas | yes (until `MONGO_URI`) | In-memory store |
+| TigerData | yes (until `DATABASE_URL`) | In-memory store; the chart buckets in the API instead of the continuous aggregate |
 | PBM portal / email / fax | yes (by design) | PBM Sim mocks modeled on public procedures; agents use the `/dev` door until the doors and adapters land |
 | Fax transport | yes (by design) | Mock fax line; no real fax provider |
 

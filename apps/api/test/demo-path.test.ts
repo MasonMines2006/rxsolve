@@ -3,11 +3,11 @@
  * -> direct adapter -> PBM Sim dev door -> settlement on the local ledger.
  */
 import { afterAll, beforeAll, beforeEach, expect, test } from "bun:test";
-import { TERMINAL_STAGES, type Stage } from "@rxsolve/contracts";
+import { TERMINAL_STAGES, type RecoveryPoint, type Stage } from "@rxsolve/contracts";
 import seed from "../../../seed/claims.json";
 import { startSim } from "../../pbm-sim/src/server";
 import { config } from "../src/config";
-import { getDb, resetDb } from "../src/db";
+import { getDb, recoverySeries, resetDb } from "../src/db";
 import { bus } from "../src/events";
 import { resetLedger } from "../src/ledger";
 import { ledgerSummary } from "../src/ledger/settle";
@@ -18,7 +18,7 @@ let api: ReturnType<typeof startApi>;
 
 beforeAll(() => {
   process.env.PBM_SIM_DELAY_SCALE = "0";
-  Object.assign(config, { mongoUri: "", ledgerBackend: "local", adapterMode: "direct", photonProjectId: "", elevenlabsApiKey: "", pollIntervalMs: 10 });
+  Object.assign(config, { databaseUrl: "", ledgerBackend: "local", adapterMode: "direct", photonProjectId: "", elevenlabsApiKey: "", pollIntervalMs: 10 });
   sim = startSim(0);
   api = startApi(0);
   config.pbmSimUrl = sim.url;
@@ -60,6 +60,10 @@ test("portal claim: TN attestation denial, wholesaler remediation, refile, settl
   expect(ledger.recovered_to_date).toBe(6.4);
   expect(ledger.fees_to_date).toBe(1.6);
   expect(await getDb().remittances.get("REM-0001")).not.toBeNull();
+
+  const series = (await (await fetch(`${api.url}/api/ledger/series`)).json()) as RecoveryPoint[];
+  expect(series).toEqual(await recoverySeries());
+  expect(series.reduce((n, p) => n + p.recovered, 0)).toBe(6.4);
 });
 
 test.each([

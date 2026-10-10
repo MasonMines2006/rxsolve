@@ -1,6 +1,6 @@
 # RxSolve
 
-Payments processor for pharmacies that recovers underpaid prescription claims (paid below acquisition cost) in-flight and settles the recovery on a real ledger. Built for HackNC / MLH sponsor challenges (Photon Spectrum, Capital One Nessie; ElevenLabs as a stretch goal).
+Payments processor for pharmacies that recovers underpaid prescription claims (paid below acquisition cost) in-flight and settles the recovery on a real ledger. Built for HackNC / MLH sponsor challenges (Photon Spectrum, Capital One Nessie, TigerData; ElevenLabs as a stretch goal).
 
 ## Docs
 
@@ -15,7 +15,7 @@ Design lives in `docs/`. These are living files; see "Living docs" below.
 
 ## Stack
 
-TypeScript on Bun (one workspace monorepo), MongoDB Atlas (in-memory fallback), Capital One Nessie (ledger), Photon Spectrum (`spectrum-ts`, in-process) for iMessage/WhatsApp, ElevenLabs STT/TTS (stretch only), Next.js + WebSocket dashboard, Claude (`claude-opus-5-5`) as the agent model.
+TypeScript on Bun (one workspace monorepo), TigerData (Postgres + TimescaleDB, in-memory fallback), Capital One Nessie (ledger), Photon Spectrum (`spectrum-ts`, in-process) for iMessage/WhatsApp, ElevenLabs STT/TTS (stretch only), Next.js + WebSocket dashboard, Claude (`claude-opus-5-5`) as the agent model.
 
 | Path | Owner |
 |---|---|

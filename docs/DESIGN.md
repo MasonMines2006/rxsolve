@@ -8,6 +8,7 @@ HackNC, MLH Sponsor Challenges, v1.3. October 10, 2026. 24-hour event, 12-hour b
 |---|---|
 | Photon Spectrum | Pharmacist channel (iMessage digest and exceptions); WhatsApp/SMS to wholesaler |
 | Capital One Nessie | Ledger: remittance deposits and fee transfers |
+| TigerData | Database: every collection on Postgres; append-only logs as TimescaleDB hypertables; a continuous aggregate drives the dashboard's recovered-over-time chart |
 | ElevenLabs (stretch) | Voice recap in the digest; phone negotiation with the PBM. Both are stretch goals, built only after the core demo path is green |
 | Frutiger Aero track | Three-way theme switcher on the dashboard: dark, light, and Frutiger Aero |
 
@@ -159,7 +160,7 @@ Nessie deposit + fee -> Digest to pharmacist (-> voice recap, stretch)
 
 | Stage | Data contract |
 |---|---|
-| Human input | Seeded claim set in `MongoDB.claims`; live claims from the PMS mock cashier terminal |
+| Human input | Seeded claim set in the `claims` table; live claims from the PMS mock cashier terminal |
 | Watcher | claim to `{paid, acquisition_cost, nadac, contract_rate}` to verdict |
 | Evidence | verdict + state + PBM spec to citation + invoice PDF + completeness |
 | Filing | evidence + PBM spec to channel adapter to `ticket` |
@@ -568,6 +569,8 @@ def deadline_for(state, fill_date) -> date:
 | `policy` | Pharmacist standing authorization | `pharmacy_id` |
 | `audit` | Append-only log of agent spawns, gate decisions, state transitions | `claim_id`, `ts` |
 
+Storage is TigerData (`apps/api/src/db.ts`): each collection is a Postgres table of jsonb documents (`key`, `ts`, `doc`) behind the same `Collection` interface as the in-memory double. `ledger_events`, `transcript` and `audit` are append-only and timestamped, so they are TimescaleDB hypertables on `ts`. The `recovery_series` continuous aggregate sums each settlement's recovered amount and fee per 15-second bucket (demo scale; production would use an hour) with real-time aggregation on, and backs `GET /api/ledger/series` (`RecoveryPoint[]`). On plain Postgres or in memory, the API buckets the same way itself.
+
 **Safety property.** `statutes` and `specs` are versioned. Every appeal records the exact rulebook and spec version it was filed under, so a filed claim stays reproducible after a PBM changes its form.
 
 ## 11. Ledger
@@ -614,6 +617,7 @@ async def settle_recovery(claim: Claim, delta: Decimal, fee_pct: float = 0.25) -
 | Live Recovery Feed | Cards as claims resolve: drug, delta, PBM, channel, deadline countdown, status |
 | Pipeline Board | Kanban: DETECTED, EVIDENCE, FILED, NEGOTIATING, SETTLED, plus ESCALATED and ABANDONED. Deadline clock per card. |
 | Ledger Panel | Nessie balances, recovered-to-date, fees accrued |
+| Recovered Over Time | Cumulative recovered dollars as a step line, one point per time bucket, read from `GET /api/ledger/series` (the TigerData continuous aggregate). Climbs live as settlements land. |
 | Channel Viewer | Per claim, the exchange on its channel: portal form fill, email, fax, wholesaler chat. The proof that the agent worked the PBM's real door. |
 | Pharmacist Phone | The iMessage digest and exceptions as the pharmacist sees them |
 
@@ -649,7 +653,7 @@ Rules:
 | Fax | Mocked fax line inside PBM Sim | Bandwidth offers T.38 SIP trunking but no fax API, so it would need self-hosted fax software. A real fax API provider (e.g. Telnyx Programmable Fax) is the upgrade path, not required. |
 | Voice (stretch) | ElevenLabs STT + TTS | Self-implemented loop; digest recap (AGT-09) and phone negotiator (AGT-08) only |
 | Ledger | Capital One Nessie REST | Version probe at T+0 |
-| Database | MongoDB Atlas free tier (`mongodb` driver) | In-memory store when `MONGO_URI` is empty. Seeded with 60 claims, ~18 underwater. |
+| Database | TigerData (Postgres + TimescaleDB) via `Bun.sql` | In-memory store when `DATABASE_URL` is empty. Seeded with 60 claims, ~18 underwater. |
 | Frontend | `apps/dashboard`, Next.js + WebSocket | Dashboard plus the PMS mock cashier terminal; CSS-variable theming (12.1). Proxies `/api` and `/sim` so the browser needs no CORS. |
 
 ## 14. Trust & Safety Model

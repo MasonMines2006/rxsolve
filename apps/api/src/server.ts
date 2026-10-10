@@ -3,7 +3,7 @@
  * Add endpoints in routes/ (core.ts is P1, messaging.ts is P2), not here.
  */
 import { config } from "./config";
-import { ensureIndexes } from "./db";
+import { ensureSchema } from "./db";
 import { bus } from "./events";
 import { getLedger, pbmAccount } from "./ledger";
 import { emitBalances } from "./ledger/settle";
@@ -13,7 +13,7 @@ import { handleInbound, messagingRoutes } from "./routes/messaging";
 import { AUDIO_DIR } from "./voice";
 
 export async function bootstrap({ spectrum = true } = {}) {
-  await ensureIndexes();
+  await ensureSchema();
   await getLedger().ensureAccounts([
     config.pharmacyId, config.platformAccount, ...["PBM_PORTAL", "PBM_EMAIL", "PBM_FAX"].map(pbmAccount),
   ]);

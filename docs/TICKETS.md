@@ -35,11 +35,11 @@ curl -X POST "https://api.elevenlabs.io/v1/text-to-speech/$VOICE_ID" \
 
 **Done when:** Nessie and Photon return success. Group chat has every key, the confirmed Nessie version, and the Photon project id.
 
-### INF-02 | T+1 to T+2 | Bun API service, MongoDB, WebSocket
+### INF-02 | T+1 to T+2 | Bun API service, TigerData, WebSocket
 
-Scaffolded: `apps/api/src/server.ts` (`Bun.serve` routes plus `/ws/live`), `db.ts` (Mongo or in-memory behind one `Collection` interface, indexes in `ensureIndexes`), `events.ts` (the bus). Remaining: point `MONGO_URI` at Atlas and confirm indexes are created.
+Scaffolded: `apps/api/src/server.ts` (`Bun.serve` routes plus `/ws/live`), `db.ts` (TigerData or in-memory behind one `Collection` interface; tables, hypertables and the `recovery_series` continuous aggregate in `ensureSchema`), `events.ts` (the bus). Remaining: point `DATABASE_URL` at a Tiger Cloud service and confirm the schema is created.
 
-**Done when:** `curl localhost:8000/api/health` returns 200, a WebSocket client receives events, and claims persist in Atlas across a restart.
+**Done when:** `curl localhost:8000/api/health` returns 200, a WebSocket client receives events, and claims persist in TigerData across a restart.
 
 ### INF-03 | T+1 to T+3 | PBM Sim: switch, decision engine, seed
 

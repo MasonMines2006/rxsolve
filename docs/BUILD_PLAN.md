@@ -8,7 +8,7 @@ Three people, self-assigned. The only hard requirement is that P1 owns the money
 
 | Phase | Ownership | Stack |
 |---|---|---|
-| P1 | Infrastructure, PBM Sim, Ledger, Orchestrator, deadline clock | TypeScript/Bun, MongoDB, Nessie (`apps/api` spine, `apps/pbm-sim`) |
+| P1 | Infrastructure, PBM Sim, Ledger, Orchestrator, deadline clock | TypeScript/Bun, TigerData, Nessie (`apps/api` spine, `apps/pbm-sim`) |
 | P2 | Research, agents, channel adapters, Spectrum notifier; ElevenLabs voice (stretch) | TypeScript/Bun, Playwright, spectrum-ts, Claude via AGENT_API_KEY (`apps/api/src/agents`, `adapters`, `messaging`) |
 | P3 | Dashboard, seeding, demo rehearsal, submission assets | Next.js, WebSocket (`apps/dashboard`) |
 
@@ -61,7 +61,7 @@ One `.env` at the repo root, read by every app. The full annotated list is `.env
 
 ```bash
 AGENT_API_KEY=...             # Claude
-MONGO_URI=mongodb+srv://...   # empty -> in-memory
+DATABASE_URL=postgres://...    # TigerData; empty -> in-memory
 LEDGER_BACKEND=local          # local | nessie
 NESSIE_KEY=...                # classic API: key as ?key= query param
 NESSIE_VERSION=v1             # CONFIRM at INF-01
