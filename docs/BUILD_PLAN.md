@@ -8,9 +8,11 @@ Three people, self-assigned. The only hard requirement is that P1 owns the money
 
 | Phase | Ownership | Stack |
 |---|---|---|
-| P1 | Infrastructure, PBM Sim, Ledger, Orchestrator, deadline clock | Python, FastAPI, MongoDB, Nessie |
-| P2 | Research, agents, channel adapters, Spectrum notifier, ElevenLabs voice | Python, Playwright, spectrum-ts, AGENT_API_KEY |
-| P3 | Dashboard, seeding, demo rehearsal, submission assets | Next.js, WebSocket |
+| P1 | Infrastructure, PBM Sim, Ledger, Orchestrator, deadline clock | TypeScript/Bun, MongoDB, Nessie (`apps/api` spine, `apps/pbm-sim`) |
+| P2 | Research, agents, channel adapters, Spectrum notifier, ElevenLabs voice | TypeScript/Bun, Playwright, spectrum-ts, Claude via AGENT_API_KEY (`apps/api/src/agents`, `adapters`, `messaging`) |
+| P3 | Dashboard, seeding, demo rehearsal, submission assets | Next.js, WebSocket (`apps/dashboard`) |
+
+A walking skeleton is in place: `bun test` and `bun seed` already run the whole demo path on local doubles (direct adapter, local ledger, in-memory db, dashboard phone mock). Each ticket replaces a double with the real thing behind the same interface, so no phase waits on another.
 
 > **Submission deadline: 11:59 PM.** P3 files the MLH pre-submission form before the cutoff. Do not let it slip.
 
@@ -55,20 +57,23 @@ Never let a dead dependency halt the demo path.
 
 ## 19. Shared `.env`
 
+One `.env` at the repo root, read by every app. The full annotated list is `.env.example`; empty values fall back to local doubles.
+
 ```bash
-AGENT_API_KEY=...
-MONGO_URI=mongodb+srv://...
-NESSIE_KEY=...            # classic API: key as ?key= query param
-# NESSIE_API_KEY=...      # v2 API: header auth instead
-# NESSIE_SECRET=...
-NESSIE_VERSION=v1         # CONFIRM at INF-01
-PHOTON_API_KEY=...        # from the MLH sponsor link
-PHOTON_WORKSPACE_URL=...  # dashboard URL for the iMessage connection
+AGENT_API_KEY=...             # Claude
+MONGO_URI=mongodb+srv://...   # empty -> in-memory
+LEDGER_BACKEND=local          # local | nessie
+NESSIE_KEY=...                # classic API: key as ?key= query param
+NESSIE_VERSION=v1             # CONFIRM at INF-01
+PHOTON_PROJECT_ID=...         # from `bun create spectrum-project` or the Photon dashboard
+PHOTON_PROJECT_SECRET=...
 ELEVENLABS_API_KEY=...
 ELEVENLABS_VOICE_ID=...
 PBM_SIM_URL=http://localhost:8100
+CLAIM_FEED_URL=http://localhost:8000/api/feed/claim
+ADAPTER_MODE=direct           # direct | real
 PHARMACY_ID=PH-MEADOWBROOK
 PLATFORM_ACCOUNT=RXSOLVE-PLATFORM
-PHARMACIST_PHONE=...      # iMessage digest destination
-WHOLESALER_CONTACT=...    # WhatsApp/SMS destination
+PHARMACIST_PHONE=...          # iMessage digest destination (register it as a Photon project user)
+WHOLESALER_CONTACT=...        # WhatsApp/SMS destination
 ```

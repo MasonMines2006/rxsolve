@@ -1,0 +1,25 @@
+{
+  "_note": "Ground truth for the mock PBMs. Separate from apps/api/src/fixtures/specs.json on purpose: our spec can be wrong; this cannot. Delays are demo-scale seconds (PBM_SIM_DELAY_SCALE multiplies them; tests set 0).",
+  "personas": {
+    "PBM_PORTAL": {
+      "display_name": "CareMark-lookalike Rx", "modeled_on": "CVS Caremark", "channel": "portal",
+      "ticket_prefix": "PRT", "response_delay_s": 2, "partial_threshold": 0.5, "deny_first_then_approve_on_rebuttal": false,
+      "required_fields": ["ndc", "rx_number", "fill_date", "invoice_number", "invoice_date", "acquisition_cost"]
+    },
+    "PBM_EMAIL": {
+      "display_name": "ExpressLane Scripts", "modeled_on": "Express Scripts", "channel": "email",
+      "ticket_prefix": "EML", "response_delay_s": 3, "partial_threshold": 0.5, "deny_first_then_approve_on_rebuttal": false,
+      "required_fields": ["ndc", "rx_number", "fill_date", "invoice_date", "acquisition_cost"]
+    },
+    "PBM_FAX": {
+      "display_name": "OptiMum Rx", "modeled_on": "OptumRx", "channel": "fax",
+      "ticket_prefix": "FAX", "response_delay_s": 4, "partial_threshold": 0.5, "deny_first_then_approve_on_rebuttal": true,
+      "required_fields": ["ndc", "rx_number", "fill_date", "invoice_number", "acquisition_cost"]
+    }
+  },
+  "state_rules": {
+    "_note": "Extra fields a PBM enforces for a state. TN: wholesaler attestation (the demo denial).",
+    "TN": ["wholesaler_attestation"]
+  },
+  "copay": { "default": 0 }
+}

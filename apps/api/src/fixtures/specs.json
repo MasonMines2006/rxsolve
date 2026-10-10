@@ -1,0 +1,23 @@
+{
+  "PBM_PORTAL": {
+    "channel": "portal",
+    "version": "pbm_portal@2026-10-10",
+    "modeled_on": "CVS Caremark",
+    "required_fields": ["ndc", "rx_number", "fill_date", "invoice_number", "invoice_date", "acquisition_cost"],
+    "source_url": "TODO(RES-01)"
+  },
+  "PBM_EMAIL": {
+    "channel": "email",
+    "version": "pbm_email@2026-10-10",
+    "modeled_on": "Express Scripts",
+    "required_fields": ["ndc", "rx_number", "fill_date", "invoice_date", "acquisition_cost"],
+    "source_url": "TODO(RES-01)"
+  },
+  "PBM_FAX": {
+    "channel": "fax",
+    "version": "pbm_fax@2026-10-10",
+    "modeled_on": "OptumRx",
+    "required_fields": ["ndc", "rx_number", "fill_date", "invoice_number", "acquisition_cost"],
+    "source_url": "TODO(RES-01)"
+  }
+}

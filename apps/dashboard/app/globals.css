@@ -1,0 +1,88 @@
+/*
+ * Theme tokens (DESIGN.md 12.1, UI-07). Owner: P3.
+ * Components use only these variables: never hardcode a color, radius, shadow, blur or background.
+ * Themes switch via data-theme="dark|light|aero" on <html>.
+ */
+:root,
+[data-theme="dark"] {
+  --bg: #0e1116;
+  --bg-image: none;
+  --surface: #161b22;
+  --surface-2: #1f2630;
+  --border: #2a323d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #4f9cf7;
+  --good: #3fb950;
+  --warn: #d29922;
+  --bad: #f85149;
+  --radius: 10px;
+  --radius-pill: 999px;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+  --blur: 0px;
+  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --bg: #f6f8fa;
+  --surface: #ffffff;
+  --surface-2: #eef1f4;
+  --border: #d0d7de;
+  --text: #1f2328;
+  --text-muted: #59636e;
+  --accent: #0969da;
+  --good: #1a7f37;
+  --warn: #9a6700;
+  --bad: #cf222e;
+  --shadow: 0 1px 3px rgb(31 35 40 / 0.12);
+  color-scheme: light;
+}
+
+/* Frutiger Aero: a full skin, not a recolor (UI-07 owns the glass, gloss and imagery). */
+[data-theme="aero"] {
+  --bg: #bfe6ff;
+  --bg-image: linear-gradient(180deg, #7cc8ff 0%, #c9f0ff 55%, #9be08a 100%);
+  --surface: rgb(255 255 255 / 0.55);
+  --surface-2: rgb(255 255 255 / 0.75);
+  --border: rgb(255 255 255 / 0.8);
+  --text: #0b2a44;
+  --text-muted: #36597a;
+  --accent: #0a84d6;
+  --good: #1f9d3a;
+  --warn: #b7791f;
+  --bad: #d13438;
+  --radius: 16px;
+  --shadow: 0 8px 24px rgb(10 80 140 / 0.25), inset 0 1px 0 rgb(255 255 255 / 0.9);
+  --blur: 14px;
+  --font: "Segoe UI", "Frutiger", "Myriad Pro", system-ui, sans-serif;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg-image), var(--bg);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: var(--font);
+  min-height: 100vh;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(var(--blur));
+  padding: 12px 14px;
+  min-width: 0;
+}
+.panel h2 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+.muted { color: var(--text-muted); }
+.money { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.pill { border-radius: var(--radius-pill); padding: 2px 8px; background: var(--surface-2); border: 1px solid var(--border); font-size: 12px; }
+button { font: inherit; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 6px 12px; cursor: pointer; }
+button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }

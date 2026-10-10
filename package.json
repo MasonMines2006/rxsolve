@@ -1,0 +1,16 @@
+{
+  "name": "rxsolve",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "api": "bun --cwd apps/api dev",
+    "sim": "bun --cwd apps/pbm-sim dev",
+    "dash": "bun --cwd apps/dashboard dev",
+    "dev": "bun run --parallel --filter '@rxsolve/api' --filter '@rxsolve/pbm-sim' --filter '@rxsolve/dashboard' dev",
+    "seed": "bun scripts/seed.ts",
+    "probe": "./scripts/probe-sponsors.sh",
+    "test": "bun test apps packages",
+    "typecheck": "bun --filter '*' typecheck"
+  }
+}

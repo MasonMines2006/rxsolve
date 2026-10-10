@@ -1,0 +1,30 @@
+{
+  "TN": {
+    "citation": "Tenn. Code Ann. 56-7-3206(c)(2)(B)(ii)",
+    "entitlement": "PBM shall reimburse at actual acquisition cost when MAC falls below cost",
+    "window_business_days": 7,
+    "regulator": "TN Department of Commerce & Insurance",
+    "version": "tn@2026-10-10"
+  },
+  "NC": {
+    "citation": "TODO(RES-01): NC MAC appeal statute",
+    "entitlement": "TODO(RES-01)",
+    "window_business_days": 30,
+    "regulator": "NC Department of Insurance",
+    "version": "nc@draft"
+  },
+  "GA": {
+    "citation": "TODO(RES-01): GA MAC appeal statute",
+    "entitlement": "TODO(RES-01)",
+    "window_business_days": 30,
+    "regulator": "GA Office of Commissioner of Insurance",
+    "version": "ga@draft"
+  },
+  "default": {
+    "citation": "TODO(RES-01)",
+    "entitlement": "TODO(RES-01)",
+    "window_business_days": 30,
+    "regulator": "State insurance regulator",
+    "version": "default@draft"
+  }
+}

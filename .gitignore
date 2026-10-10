@@ -1,2 +1,11 @@
 .claude/worktrees/
 .env
+
+# bun / node
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+
+# generated artifacts (evidence PDFs, voice recaps)
+out/

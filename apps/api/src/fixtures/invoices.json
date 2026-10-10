@@ -1,0 +1,6 @@
+[
+  {"ndc": "00378001801", "invoice_number": "INV-55120", "invoice_date": "2026-10-01", "wholesaler": "Cardinal-lookalike Wholesale", "unit_cost": 0.0128, "wholesaler_attestation": null},
+  {"ndc": "00093715698", "invoice_number": "INV-55121", "invoice_date": "2026-10-01", "wholesaler": "Cardinal-lookalike Wholesale", "unit_cost": 0.11, "wholesaler_attestation": "ATT-55121"},
+  {"ndc": "68180051301", "invoice_number": "INV-55122", "invoice_date": "2026-10-02", "wholesaler": "Cardinal-lookalike Wholesale", "unit_cost": 0.15, "wholesaler_attestation": "ATT-55122"},
+  {"ndc": "00781107210", "invoice_number": "INV-55123", "invoice_date": "2026-10-02", "wholesaler": "Cardinal-lookalike Wholesale", "unit_cost": 0.30, "wholesaler_attestation": "ATT-55123"}
+]

@@ -15,13 +15,27 @@ Design lives in `docs/`. These are living files; see "Living docs" below.
 
 ## Stack
 
-Python 3.12 + FastAPI, MongoDB Atlas, Capital One Nessie (ledger), Photon Spectrum (`spectrum-ts`) for iMessage/WhatsApp/SMS, ElevenLabs STT/TTS, Next.js + WebSocket dashboard.
+TypeScript on Bun (one workspace monorepo), MongoDB Atlas (in-memory fallback), Capital One Nessie (ledger), Photon Spectrum (`spectrum-ts`, in-process) for iMessage/WhatsApp, ElevenLabs STT/TTS, Next.js + WebSocket dashboard, Claude (`claude-opus-5-5`) as the agent model.
+
+| Path | Owner |
+|---|---|
+| `packages/contracts/` | shared: DESIGN 5.3 shapes and `/ws/live` events (zod + types) |
+| `apps/api/` | P1: orchestrator, intake, ledger, db, events, `routes/core.ts`. P2: `agents/`, `adapters/`, `messaging/`, `voice.ts`, `routes/messaging.ts` |
+| `apps/pbm-sim/` | P1: standalone mock PBMs; must import nothing from `@rxsolve/*` |
+| `apps/dashboard/` | P3: dashboard, PMS mock cashier, pharmacist phone, themes |
+
+## Commands
+
+- `bun install`, then `bun run dev` (api :8000, pbm-sim :8100, dashboard :3000), `bun seed [RXS-0001]`.
+- `bun test` runs the demo path end to end over real HTTP; `bun run typecheck` checks every workspace. Both must pass before pushing.
+- Every app reads the one root `.env`. Empty values fall back to local doubles (in-memory db, local ledger, dashboard phone mock).
+- Spectrum SDK reference for agents: `.claude/skills/spectrum/` (vendored from Photon's scaffold).
 
 ## Git rhythm
 
 - Commit small and often, one logical change per commit.
 - Pull/rebase before starting work and before pushing.
-- Work on `main`. Stay in your phase's files (P1 backend/ledger, P2 agents/messaging, P3 dashboard) to avoid conflicts.
+- Work on `main`. Stay in your phase's files (see the Stack table) to avoid conflicts.
 - Never force-push. After the T+11 code freeze, nobody touches `main`.
 - Never commit secrets. `.env` is gitignored; only `.env.example` is committed.
 
@@ -35,8 +49,9 @@ Python 3.12 + FastAPI, MongoDB Atlas, Capital One Nessie (ledger), Photon Spectr
 
 ## Shared contracts
 
-- The JSON shapes in `DESIGN.md` section 5.3 and the `/ws/live` event shapes are interfaces between phases.
+- The JSON shapes in `DESIGN.md` section 5.3 and the `/ws/live` event shapes are interfaces between phases. Both live in code in `packages/contracts/src/index.ts`; the API and dashboard import them, so a breaking change fails typecheck wherever it matters.
 - Changing one means logging it in `DECISIONS.md` and saying so in the commit message.
+- Agents reach the PBM Sim over HTTP only (the dev door, then portal/inbox/fax). The PBM Sim never imports agent code (`apps/api/test/boundaries.test.ts`).
 
 ## Rules that must hold
 

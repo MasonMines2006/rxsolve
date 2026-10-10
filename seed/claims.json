@@ -1,0 +1,23 @@
+{
+  "_note": "Switch requests replayed through the PBM Sim by scripts/seed.ts. 401-D1 (date of service) is stamped with today's date by the switch so every claim is inside its appeal window. INF-03 grows this to 60 claims (~18 underwater, 3 marginal).",
+  "claims": [
+    {"claim_id": "RXS-0001", "expect": "SETTLED (demo: portal, TN attestation denial, remediation)",
+     "meta": {"pbm": "PBM_PORTAL", "pharmacy_id": "PH-MEADOWBROOK", "state": "TN", "plan": "TN Part D", "patient_ref": "PT-7F3A"},
+     "request": {"402-D2": "1048213", "407-D7": "00378001801", "442-E7": 1000, "405-D5": 30, "409-D9": 14.50, "426-DQ": 18.00}},
+    {"claim_id": "RXS-0002", "expect": "SETTLED (email)",
+     "meta": {"pbm": "PBM_EMAIL", "pharmacy_id": "PH-MEADOWBROOK", "state": "NC", "plan": "NC Commercial", "patient_ref": "PT-2B91"},
+     "request": {"402-D2": "1048214", "407-D7": "00093715698", "442-E7": 90, "405-D5": 90, "409-D9": 11.00, "426-DQ": 15.00}},
+    {"claim_id": "RXS-0003", "expect": "SETTLED (fax)",
+     "meta": {"pbm": "PBM_FAX", "pharmacy_id": "PH-MEADOWBROOK", "state": "GA", "plan": "GA Medicaid MCO", "patient_ref": "PT-C044"},
+     "request": {"402-D2": "1048215", "407-D7": "68180051301", "442-E7": 60, "405-D5": 30, "409-D9": 10.20, "426-DQ": 12.00}},
+    {"claim_id": "RXS-0004", "expect": "CLEARED",
+     "meta": {"pbm": "PBM_PORTAL", "pharmacy_id": "PH-MEADOWBROOK", "state": "NC", "plan": "NC Commercial", "patient_ref": "PT-91DD"},
+     "request": {"402-D2": "1048216", "407-D7": "00781107210", "442-E7": 30, "405-D5": 30, "409-D9": 9.50, "426-DQ": 14.00}},
+    {"claim_id": "RXS-0005", "expect": "EXCEPTION (marginal)",
+     "meta": {"pbm": "PBM_EMAIL", "pharmacy_id": "PH-MEADOWBROOK", "state": "TN", "plan": "TN Part D", "patient_ref": "PT-4E10"},
+     "request": {"402-D2": "1048217", "407-D7": "00781107210", "442-E7": 30, "405-D5": 30, "409-D9": 9.50, "426-DQ": 14.00}},
+    {"claim_id": "RXS-0006", "expect": "EXCEPTION (over the standing-authorization limit)",
+     "meta": {"pbm": "PBM_FAX", "pharmacy_id": "PH-MEADOWBROOK", "state": "NC", "plan": "NC Commercial", "patient_ref": "PT-AA07"},
+     "request": {"402-D2": "1048218", "407-D7": "00093715698", "442-E7": 2000, "405-D5": 90, "409-D9": 240.00, "426-DQ": 300.00}}
+  ]
+}

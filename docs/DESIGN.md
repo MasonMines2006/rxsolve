@@ -13,6 +13,8 @@ HackNC, MLH Sponsor Challenges, v1.3. October 10, 2026. 24-hour event, 12-hour b
 
 Related docs: [BUILD_PLAN.md](BUILD_PLAN.md), [TICKETS.md](TICKETS.md), [DEMO.md](DEMO.md), [DECISIONS.md](DECISIONS.md), [STATUS.md](STATUS.md).
 
+> **Code samples in this doc are Python-flavored pseudocode.** The implementation is TypeScript on Bun; each section names the file that implements it. Repo layout and owners: [README](../README.md).
+
 ## 1. Overview and the Problem
 
 ### 1.1 The problem, concretely
@@ -168,6 +170,8 @@ Nessie deposit + fee -> Digest to pharmacist -> Voice recap in digest
 
 ### 5.3 Data contracts
 
+These shapes live in code in `packages/contracts/src/index.ts` (zod schemas plus inferred types). The API and the dashboard import them; the PBM Sim does not. Dates are `YYYY-MM-DD` strings and timestamps ISO 8601 UTC.
+
 **Claim**
 
 The NCPDP-shaped request and response are carried verbatim under `ncpdp`; the flat fields are derived for the agents. Field IDs are from memory and are verified in RES-01.
@@ -241,9 +245,14 @@ The NCPDP-shaped request and response are carried verbatim under `ncpdp`; the fl
   "attachments": ["wholesaler_invoice_RXS-0001.pdf"],
   "required_fields_present": ["ndc", "invoice_date", "acquisition_cost", "wholesaler_attestation"],
   "spec_version": "pbm_portal@2026-10-10",
-  "completeness": 0.75
+  "completeness": 0.75,
+  "fields": { "ndc": "00378001801", "invoice_number": "INV-55120", "...": "..." },
+  "delta": 6.40,
+  "appeal_deadline": "2026-03-23"
 }
 ```
+
+`fields` (the values an adapter puts on the PBM's form), `delta` and `appeal_deadline` are additions to the original example. Completeness is scored against *our* spec of the PBM; the orchestrator files only at 1.0. A PBM can still deny for a field our spec did not know it required (the TN attestation in the demo), which is what negotiation remediates.
 
 **Appeal ticket (returned by every adapter)**
 
@@ -301,6 +310,27 @@ Positioning: RxSolve sits beside the pharmacy's existing claim switch, reading a
 
 The Nessie deposit references this record's `remittance_id` in its memo.
 
+**Live events (`ws://localhost:8000/ws/live`)**
+
+Every message is `{ "type", "ts", "claim_id", "payload" }`. On connect the server replays recent history, then streams. `GET /api/events` returns the same history over HTTP.
+
+| `type` | `payload` |
+|---|---|
+| `claim.received` | Claim plus `drug` (display name) |
+| `claim.stage` | `{ stage, reason? }`; stage is one of CLEARED, DETECTED, EVIDENCE, FILED, NEGOTIATING, SETTLED, ESCALATED, ABANDONED, EXCEPTION |
+| `verdict` | Watcher verdict |
+| `evidence.built` | Evidence packet |
+| `appeal.filed` | Appeal ticket |
+| `appeal.decision` | `{ claim_id, ticket_id, status: APPROVED/DENIED, reason, field, delta, raw }` |
+| `negotiation.action` | `{ kind: REFILED/ESCALATED/EXTERNAL_APPEAL/ABANDONED, ticket?, evidence?, reason? }` |
+| `channel.message` | ChannelMessage on portal, email, fax, phone, whatsapp or sms (channel viewer) |
+| `notifier.message` | ChannelMessage on imessage (pharmacist phone) |
+| `ledger.settled` | Ledger settlement plus `remittance` |
+| `ledger.balances` | `{ balances, recovered_to_date, fees_to_date }`, computed from ledger events |
+| `exception.raised` | `{ reason, ask }` |
+
+ChannelMessage: `{ claim_id, channel, direction: out/in, counterparty, text, attachments, audio_url, meta, ts }`. It is also the shape stored in `transcript`.
+
 ## 6. Agent Architecture
 
 The split is deliberate: more agentic where reasoning or perception matters, deterministic where speed and reliability matter.
@@ -326,11 +356,9 @@ The split is deliberate: more agentic where reasoning or perception matters, det
 **Purpose.** Guarantee no claim resolves below cost without a verified recovery being opened.
 
 ```python
-def adjudicate(claim, invoices, nadac, contract) -> Verdict:
+def adjudicate(claim, invoices) -> Verdict:
     acq = acquisition_cost(invoices, claim["ndc"], claim["fill_date"])
-    refs = [acq, nadac[claim["ndc"]], contract[claim["plan"], claim["ndc"]]]
-    floor = min(refs)                      # most conservative reference
-    delta = floor - claim["paid_amount"]
+    delta = acq - claim["paid_amount"]     # the statutes entitle the pharmacy to acquisition cost
     if delta <= 0:
         return Verdict("CLEAR", delta=0.0)             # no model call on this path
     if delta <= MARGINAL_BAND_CENTS:
@@ -342,6 +370,8 @@ def adjudicate(claim, invoices, nadac, contract) -> Verdict:
         appeal_deadline=deadline_for(claim["state"], claim["fill_date"]),
     )
 ```
+
+NADAC and contract rate are carried on the claim for display and for the MARGINAL agent's judgment, not for the delta: `min(acq, nadac, contract)` would turn the demo claim's $6.40 underpayment into $0.70. Implemented in `apps/api/src/agents/watcher.ts`.
 
 ### 7.2 Evidence Builder
 
@@ -472,6 +502,9 @@ The channel mix is our design choice to show breadth. We do not claim any real P
 | Inbox | Mailbox with HTTP API; inbound mail triggers a templated reply after a delay |
 | Fax line | `POST /fax` accepts a PDF; the reply is rendered as a scanned-look PDF and queued on a return line |
 | Rep line (stretch) | Audio WebSocket |
+| Dev door | `POST /dev/appeals`, `GET /dev/appeals/:ticket`, `POST /dev/appeals/:ticket/reply`: JSON intake on the same engine, used by the API's `DirectAdapter` until the real doors land. Not shown in the demo. |
+
+Switch request body: `{ "transaction": "B1", "meta": { claim_id?, pbm, pharmacy_id, state, plan, patient_ref }, "request": { NCPDP fields } }`. `meta` stands in for the routing a real claim gets from BIN/PCN. The switch stamps `401-D1` with today's date when it is absent. Every paid claim is teed to `CLAIM_FEED_URL` (the API's `POST /api/feed/claim`) as `{ meta, ncpdp }`, the way a switch vendor shares adjudication data with a pharmacy's service provider. Implemented in `apps/pbm-sim/src/`.
 
 ### 8.3 Decision engine
 
@@ -606,18 +639,18 @@ Rules:
 
 | Component | Tool | Notes |
 |---|---|---|
-| Agent runtime | Python 3.12 + FastAPI | Single service, async loop, WebSocket to dashboard |
-| PBM Sim | FastAPI + simple HTML | Separate process and datastore; portal, inbox, fax line, switch |
+| Runtime | Bun + TypeScript, workspace monorepo | `packages/contracts` shared by every app |
+| Agent runtime | `apps/api`, `Bun.serve` | Single service, async loop, WebSocket to dashboard at `/ws/live` |
+| PBM Sim | `apps/pbm-sim`, `Bun.serve` + simple HTML | Separate process and in-memory datastore; switch, dev door, portal, inbox, fax line |
 | Browser agent | Playwright driven by the agent model | Fixed field map; scripted fallback if it flakes |
-| Agent model | `AGENT_API_KEY` | Invoked on MARGINAL, evidence extraction, negotiation, portal/fax reading |
-| Messaging | Photon Spectrum SDK (`spectrum-ts`) | iMessage digest/exceptions; WhatsApp + SMS to wholesaler. SDK loop unless a public HTTPS URL exists. |
+| Agent model | Claude `claude-opus-5-5` via `@anthropic-ai/sdk`, key in `AGENT_API_KEY` | Invoked on MARGINAL, evidence extraction, negotiation, portal/fax reading (`apps/api/src/agents/llm.ts`) |
+| Messaging | Photon Spectrum SDK (`spectrum-ts`), in-process in the API | `PHOTON_PROJECT_ID`/`PHOTON_PROJECT_SECRET`; cloud iMessage for the pharmacist; WhatsApp Business to the wholesaler. The SDK's `app.messages` loop receives, so no public URL is needed. |
 | Email | Mock mailbox inside PBM Sim | Optional: a hosted inbound/outbound email service if time allows |
 | Fax | Mocked fax line inside PBM Sim | Bandwidth offers T.38 SIP trunking but no fax API, so it would need self-hosted fax software. A real fax API provider (e.g. Telnyx Programmable Fax) is the upgrade path, not required. |
 | Voice | ElevenLabs STT + TTS | Self-implemented loop |
 | Ledger | Capital One Nessie REST | Version probe at T+0 |
-| Database | MongoDB Atlas free tier | Seeded with 60 claims, ~18 underwater |
-| Frontend | Next.js + WebSocket | Dashboard plus the PMS mock cashier terminal; CSS-variable theming (12.1) |
-| Tunnel | ngrok / Cloudflare Tunnel | Only if the webhook path is chosen for Spectrum |
+| Database | MongoDB Atlas free tier (`mongodb` driver) | In-memory store when `MONGO_URI` is empty. Seeded with 60 claims, ~18 underwater. |
+| Frontend | `apps/dashboard`, Next.js + WebSocket | Dashboard plus the PMS mock cashier terminal; CSS-variable theming (12.1). Proxies `/api` and `/sim` so the browser needs no CORS. |
 
 ## 14. Trust & Safety Model
 

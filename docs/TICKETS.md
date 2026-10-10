@@ -26,36 +26,20 @@ curl -X POST "https://api.elevenlabs.io/v1/text-to-speech/$VOICE_ID" \
   -d '{"text":"RxSolve online","model_id":"eleven_turbo_v2_5"}' \
   --output probe.mp3
 
-# --- Photon: connect iMessage via the Spectrum dashboard ---
-# Record the workspace URL in group chat before proceeding.
+# --- Photon: Photon's "send your first message" scaffold gives PROJECT_ID / PROJECT_SECRET ---
+# Put them in .env as PHOTON_PROJECT_ID / PHOTON_PROJECT_SECRET, register the pharmacist's phone
+# as a project user, then `bun api` should log "spectrum: iMessage connected".
 ```
 
-**Done when:** all three return success. Group chat has every key, the confirmed Nessie version, and the Spectrum workspace URL.
+`bun probe` (scripts/probe-sponsors.sh) runs the Nessie and ElevenLabs checks.
 
-### INF-02 | T+1 to T+2 | FastAPI service, MongoDB, WebSocket
+**Done when:** all three return success. Group chat has every key, the confirmed Nessie version, and the Photon project id.
 
-```python
-from fastapi import FastAPI, WebSocket
-from pymongo import MongoClient
+### INF-02 | T+1 to T+2 | Bun API service, MongoDB, WebSocket
 
-app = FastAPI()
-db = MongoClient(os.environ["MONGO_URI"]).rxsolve
-db.claims.create_index("claim_id", unique=True)
-db.claims.create_index([("state", 1), ("verdict", 1)])
-db.appeals.create_index([("status", 1), ("deadline", 1)])
+Scaffolded: `apps/api/src/server.ts` (`Bun.serve` routes plus `/ws/live`), `db.ts` (Mongo or in-memory behind one `Collection` interface, indexes in `ensureIndexes`), `events.ts` (the bus). Remaining: point `MONGO_URI` at Atlas and confirm indexes are created.
 
-@app.get("/api/health")
-def health():
-    return {"status": "ok"}
-
-@app.websocket("/ws/live")
-async def live(ws: WebSocket):
-    await ws.accept()
-    async for event in event_stream():
-        await ws.send_json(event)
-```
-
-**Done when:** `curl localhost:8000/api/health` returns 200, and a WebSocket client receives events.
+**Done when:** `curl localhost:8000/api/health` returns 200, a WebSocket client receives events, and claims persist in Atlas across a restart.
 
 ### INF-03 | T+1 to T+3 | PBM Sim: switch, decision engine, seed
 
@@ -108,7 +92,7 @@ def decide(spec, evidence) -> Decision:
 
 ### RES-01 | T+0 to T+3 | PBM appeal procedure and NCPDP field research
 
-Pull the public MAC appeal procedures for CVS Caremark, Express Scripts, and OptumRx from provider manuals and PBM pages. For each: submission channel(s), required fields, attachments, appeal window, response SLA. Write the result into `specs` with the source URL and a version.
+Pull the public MAC appeal procedures for CVS Caremark, Express Scripts, and OptumRx from provider manuals and PBM pages. For each: submission channel(s), required fields, attachments, appeal window, response SLA. Write the result into `apps/api/src/fixtures/specs.json` (our model of each PBM) and `statutes.json` (replace every `TODO(RES-01)`) with the source URL and a version, and mirror what each PBM actually enforces into `apps/pbm-sim/data/personas.json`.
 
 Also pull public payer sheets to verify the NCPDP D.0 field IDs and response fields used in DESIGN.md section 5.3, and the 835 adjustment fields used in section 5.4.
 
@@ -119,10 +103,9 @@ Also pull public payer sheets to verify the NCPDP D.0 field IDs and response fie
 Deterministic on the happy path.
 
 ```python
-def adjudicate(claim, invoices, nadac, contract):
+def adjudicate(claim, invoices):
     acq = acquisition_cost(invoices, claim["ndc"], claim["fill_date"])
-    floor = min(acq, nadac[claim["ndc"]], contract[claim["plan"], claim["ndc"]])
-    delta = floor - claim["paid_amount"]
+    delta = acq - claim["paid_amount"]   # entitlement is acquisition cost (DESIGN 7.1)
     if delta <= 0:
         return Verdict("CLEAR", 0.0)
     if delta <= MARGINAL_BAND:
@@ -130,7 +113,9 @@ def adjudicate(claim, invoices, nadac, contract):
     return Verdict("UNDERWATER", delta)
 ```
 
-**Done when:** a known-underwater claim returns UNDERWATER with the correct delta; a fair claim returns CLEAR with no model call.
+Scaffolded in `apps/api/src/agents/watcher.ts`: CLEAR and UNDERWATER work; MARGINAL currently raises a pharmacist exception instead of asking the agent.
+
+**Done when:** a known-underwater claim returns UNDERWATER with the correct delta; a fair claim returns CLEAR with no model call; a MARGINAL claim is resolved by the agent (`agents/llm.ts`).
 
 ### AGT-02 | T+3 to T+5 | Evidence Builder
 
