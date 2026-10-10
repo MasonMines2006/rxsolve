@@ -119,7 +119,7 @@ Orchestrator updates this table as work lands. Status: `not started`, `in progre
 
 | Ticket | Status | Notes |
 |---|---|---|
-| RES-01 | not started | Needs web research; fixtures still `TODO(RES-01)` |
+| RES-01 | done | Cited specs and statutes; D.0 IDs verified; 835 mapping partly unverified; CVS and Express Scripts form fields and Express Scripts window not public (see STATUS) |
 | AGT-01 | done | MARGINAL resolved by agent; falls back to pharmacist exception with no key or on error (tests unrun: bun unavailable) |
 | AGT-02 | not started | Packet from fixtures; statute extraction and real PDF TODO |
 | AGT-03 | not started | `PortalAdapter` stub |
