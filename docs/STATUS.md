@@ -23,7 +23,7 @@ Update this as work lands. Mark a ticket done when its "Done when" in `TICKETS.m
 | AGT-04 | P2 | todo | `EmailAdapter` stub |
 | AGT-05 | P2 | todo | `FaxAdapter` stub |
 | AGT-06 | P2 | scaffolded | Negotiation loop works through the direct adapter; wholesaler WhatsApp is stubbed |
-| AGT-07 | P2 | scaffolded | Digest + exception pings + Spectrum iMessage send/receive written; Spectrum connects with the project creds; reply commands TODO |
+| AGT-07 | P2 | scaffolded | Digest from audit + remittances (today and week), exception pings, APPROVE/SKIP/DETAILS/PAUSE/RESUME/LIMIT replies change state, sender check; tested with no network. Not marked done: needs a live phone with real Photon creds ("Done when") |
 | AGT-08 | P2 | todo | Stretch: phone negotiator |
 | AGT-09 | P2 | scaffolded | Stretch: digest voice recap; `voice.ts` written, no-ops without a key |
 | UI-01 | P3 | scaffolded | Shell, `/ws/live` hook, state reducer, panel stubs, theme tokens |
@@ -39,7 +39,7 @@ Update this as work lands. Mark a ticket done when its "Done when" in `TICKETS.m
 | Integration | Stubbed? | Detail |
 |---|---|---|
 | Nessie | yes (until INF-04) | `LEDGER_BACKEND=local` in-memory double; confirm classic vs v2 at INF-01 |
-| Spectrum iMessage | no (needs creds) | Live when `PHOTON_PROJECT_ID`/`SECRET` are set; shared-plan lines only reach registered project users |
+| Spectrum iMessage | no (needs creds) | Live when `PHOTON_PROJECT_ID`/`SECRET` are set; shared-plan lines only reach registered project users. Without creds the digest, pings and replies run through the dashboard phone mock (`/api/digest`, `/api/dev/pharmacist-reply`). Set `PHARMACIST_PHONE` to restrict who may send commands |
 | Spectrum WhatsApp (wholesaler) | yes | Wholesaler replies instantly in the channel viewer; needs WhatsApp Business setup in Photon |
 | ElevenLabs | stretch | Not on the core demo path; digest is text-only without a key |
 | MongoDB Atlas | yes (until `MONGO_URI`) | In-memory store |

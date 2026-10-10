@@ -49,7 +49,7 @@ cashier (dashboard) --B1--> pbm-sim /switch/claim --tee--> api /api/feed/claim
 | PBMs (portal, email, fax) | Mocked by design in `apps/pbm-sim`, modeled on public CVS Caremark, Express Scripts and OptumRx appeal procedures. No real logos. |
 | Fax transport | Mocked inside the PBM Sim |
 | Nessie | Local ledger double until INF-04 (`LEDGER_BACKEND=nessie`) |
-| Photon Spectrum (iMessage) | Live when `PHOTON_PROJECT_ID`/`PHOTON_PROJECT_SECRET` are set; otherwise the dashboard phone mock shows every message |
+| Photon Spectrum (iMessage) | Live when `PHOTON_PROJECT_ID`/`PHOTON_PROJECT_SECRET` are set; otherwise the dashboard phone mock shows every message and its reply box drives the same commands (APPROVE, SKIP, DETAILS, PAUSE, RESUME, LIMIT) |
 | WhatsApp to wholesaler | Stubbed: the wholesaler replies instantly in the channel viewer |
 | ElevenLabs (stretch) | Voice recap (AGT-09) and phone negotiator (AGT-08) are stretch goals; without keys the digest is text only |
 | Real-PBM adapters | `ADAPTER_MODE=direct` files through the PBM Sim's JSON dev door until the portal/email/fax adapters land |
