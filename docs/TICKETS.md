@@ -124,7 +124,7 @@ Orchestrator updates this table as work lands. Status: `not started`, `in progre
 | AGT-02 | done | Entitlement via `extract` with fixture fallback; local appeal and invoice PDFs in `out/evidence/`; completeness vs spec plus state extras; tested for TN, NC, GA, default |
 | AGT-03 | not started | `PortalAdapter` stub |
 | AGT-04 | done | Adapter and tests against a fake door; waits on the INF-03 inbox door (contract in DECISIONS) |
-| AGT-05 | not started | `FaxAdapter` stub |
+| AGT-05 | done | Adapter tested against a fake fax line; PBM Sim fax door (P1) must match the contract in DECISIONS.md |
 | AGT-06 | not started | Works through the direct adapter; wholesaler WhatsApp stubbed |
 | AGT-07 | in progress | Digest, exception asks, reply commands done and tested offline; "done when" needs a digest on a real phone with Photon creds |
 | AGT-08 | not started | Stretch |

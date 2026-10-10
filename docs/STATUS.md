@@ -21,7 +21,7 @@ Update this as work lands. Mark a ticket done when its "Done when" in `TICKETS.m
 | AGT-02 | P2 | done | Entitlement extracted by the agent model (fixture text with no `AGENT_API_KEY` or on error; citation always from the fixture); appeal and invoice PDFs written locally to `out/evidence/`; completeness scored against spec `required_fields` plus optional `state_rules`. Wholesaler documents added by negotiation are not re-rendered into the PDF |
 | AGT-03 | P2 | todo | `PortalAdapter` stub; `ADAPTER_MODE=real` to use it |
 | AGT-04 | P2 | done (adapter and fake-door tests; real inbox door pending INF-03) | Composes appeal with PDFs from `out/evidence/` as base64 attachments, posts to the inbox door, parses the templated reply by regex; tested against a fake local door (`apps/api/test/email-adapter.test.ts`). Needs the INF-03 inbox door to match the contract in DECISIONS to pass end to end; unparseable replies throw (no model fallback). |
-| AGT-05 | P2 | todo | `FaxAdapter` stub |
+| AGT-05 | P2 | done against the assumed door contract | `FaxAdapter` posts cover sheet + evidence PDF to `/fax/:pbm`, reads the return PDF via model vision (text-layer parse with no `AGENT_API_KEY` or on error); tested against a fake local fax line. INF-03 fax door in PBM Sim still to be built to match DECISIONS.md |
 | AGT-06 | P2 | scaffolded | Negotiation loop works through the direct adapter; wholesaler WhatsApp is stubbed |
 | AGT-07 | P2 | scaffolded | Digest from audit + remittances (today and week), exception pings, APPROVE/SKIP/DETAILS/PAUSE/RESUME/LIMIT replies change state, sender check; tested with no network. Not marked done: needs a live phone with real Photon creds ("Done when") |
 | AGT-08 | P2 | todo | Stretch: phone negotiator |
