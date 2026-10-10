@@ -243,6 +243,7 @@ The plugin adds:
 - The `coordinator` skill: how to treat a pushed message, claim, send, reply and avoid loops.
 - The `join` skill: how to join with the password.
 - The `host` skill: start, check and stop the service, and what to tell the user.
+- Slash commands, as `/agent-coordinator:<name>`: `subscribe`, `unsubscribe`, `subscriptions`, `send`, `read`, `claim`, `join`, `status`, `host`, `stop`.
 
 If the token is missing, the start note tells the agent to ask you to run the join command. If the session has no inbox socket (an older Claude Code), the note falls back to the [poller](#poller-fallback).
 
