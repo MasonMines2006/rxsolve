@@ -122,7 +122,7 @@ Orchestrator updates this table as work lands. Status: `not started`, `in progre
 | RES-01 | done | Cited specs and statutes; D.0 IDs verified; 835 mapping partly unverified; CVS and Express Scripts form fields and Express Scripts window not public (see STATUS) |
 | AGT-01 | done | MARGINAL resolved by agent; falls back to pharmacist exception with no key or on error (tests unrun: bun unavailable) |
 | AGT-02 | done | Entitlement via `extract` with fixture fallback; local appeal and invoice PDFs in `out/evidence/`; completeness vs spec plus state extras; tested for TN, NC, GA, default |
-| AGT-03 | not started | `PortalAdapter` stub |
+| AGT-03 | done | Scripted and Playwright drivers, transcript on every call; tested against a fake door, awaits the P1 portal door per the contract in DECISIONS |
 | AGT-04 | done | Adapter and tests against a fake door; waits on the INF-03 inbox door (contract in DECISIONS) |
 | AGT-05 | done | Adapter tested against a fake fax line; PBM Sim fax door (P1) must match the contract in DECISIONS.md |
 | AGT-06 | not started | Works through the direct adapter; wholesaler WhatsApp stubbed |
