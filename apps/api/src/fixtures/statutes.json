@@ -7,24 +7,42 @@
     "version": "tn@2026-10-10"
   },
   "NC": {
-    "citation": "TODO(RES-01): NC MAC appeal statute",
-    "entitlement": "TODO(RES-01)",
-    "window_business_days": 30,
+    "citation": "N.C. Gen. Stat. 58-56A-5(d)",
+    "entitlement": "PBM shall offer an administrative appeal when MAC reimbursement is less than the net amount the network provider paid suppliers for the drug; an upheld appeal permits reverse and rebill",
+    "window_business_days": 6,
+    "window_calendar_days": 10,
+    "window_basis": "Statute requires the PBM procedure to allow no less than 10 calendar days after the fill date to file; 6 business days is the lower bound of 10 calendar days, so the computed deadline never exceeds the statutory floor",
+    "response_sla_calendar_days": 10,
+    "remedy": "Upheld: notify appellant, apply MAC change effective the resolution date, permit reverse and rebill, all within 10 calendar days of decision. Denied: reason, NDC, and names of national or regional wholesalers operating in NC.",
     "regulator": "NC Department of Insurance",
-    "version": "nc@draft"
+    "source_url": "https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_58/GS_58-56A-5.html",
+    "source_note": "Section heading 'Maximum allowable cost price'; history 2014-120 s.20(a); 2021-161 s.1(b). Fetched 2026-10-10.",
+    "version": "nc@2026-10-10"
   },
   "GA": {
-    "citation": "TODO(RES-01): GA MAC appeal statute",
-    "entitlement": "TODO(RES-01)",
-    "window_business_days": 30,
+    "citation": "O.C.G.A. 33-64-9(d), (f), (g)",
+    "entitlement": "PBM contract must include an internal MAC appeal; the appeal must be upheld if the pharmacy was not reimbursed per subsection (b) (pricing updated within five business days) or the drug fails the subsection (c) test (generally available from national or regional wholesalers). The text does not mention acquisition cost.",
+    "window_business_days": 10,
+    "window_calendar_days": 14,
+    "window_basis": "Right to appeal is limited to 14 calendar days following reimbursement of the initial claim; 10 business days is the lower bound of 14 calendar days",
+    "response_sla_calendar_days": 14,
+    "remedy": "Upheld: adjust the MAC price effective the day after the decision, apply it to similarly situated pharmacies, and allow the pharmacy to reverse and rebill.",
     "regulator": "GA Office of Commissioner of Insurance",
-    "version": "ga@draft"
+    "source_url": "https://law.onecle.com/georgia/title-33/33-64-9.html",
+    "source_note": "Heading 'Requirements for use of maximum allowable cost pricing by pharmacy benefits managers; appeals; enforcement authority'; effective January 1, 2016; Commissioner has enforcement authority (subsection (h)). The onecle copy is an older codification; Justia (403) and legis.ga.gov (unreadable PDF) could not be read, so confirm current text before relying on it. Fetched 2026-10-10.",
+    "version": "ga@2026-10-10"
   },
   "default": {
-    "citation": "TODO(RES-01)",
-    "entitlement": "TODO(RES-01)",
-    "window_business_days": 30,
+    "citation": "No state statute on file; PBM provider procedure (OptumRx MAC Appeal Submission Guide and FAQ; Cigna MAC Pricing Review Form)",
+    "entitlement": "Reimbursement at or above the pharmacy's documented acquisition cost under the PBM's own MAC appeal procedure; state law may shorten the window",
+    "window_business_days": 20,
+    "window_calendar_days": 30,
+    "window_basis": "PBM procedures require MAC appeals within 30 days of the claim fill date or the shorter state-required period; 20 business days is the lower bound of 30 calendar days",
+    "response_sla_calendar_days": null,
+    "remedy": "Not specified in a public default source",
     "regulator": "State insurance regulator",
-    "version": "default@draft"
+    "source_url": "https://business.optum.com/en/support/professionalrx-resources/appeals-submission-guide.html",
+    "source_note": "Contractual practice, not a statute. Also https://www-cigna-com.extwideip.cigna.com/static/www-cigna-com/docs/form-cigna-mac-appeal.pdf. Fetched 2026-10-10.",
+    "version": "default@2026-10-10"
   }
 }

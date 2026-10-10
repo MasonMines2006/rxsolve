@@ -14,7 +14,7 @@
     "PBM_FAX": {
       "display_name": "OptiMum Rx", "modeled_on": "OptumRx", "channel": "fax",
       "ticket_prefix": "FAX", "response_delay_s": 4, "partial_threshold": 0.5, "deny_first_then_approve_on_rebuttal": true,
-      "required_fields": ["ndc", "rx_number", "fill_date", "invoice_number", "acquisition_cost"]
+      "required_fields": ["ndc", "rx_number", "fill_date", "acquisition_cost"]
     }
   },
   "state_rules": {

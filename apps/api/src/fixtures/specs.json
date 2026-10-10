@@ -4,20 +4,58 @@
     "version": "pbm_portal@2026-10-10",
     "modeled_on": "CVS Caremark",
     "required_fields": ["ndc", "rx_number", "fill_date", "invoice_number", "invoice_date", "acquisition_cost"],
-    "source_url": "TODO(RES-01)"
+    "source_url": "https://www.mimeridian.com/content/dam/centene/meridian/mi/pdf/CVS-Caremark-Pharmacy-Portal-MAC%20Appeals.pdf",
+    "real_channels": ["portal"],
+    "submission": "CVS Caremark Pharmacy Portal (rxservices.cvscaremark.com), MAC Menu, MAC Appeals form; one portal account per NCPDP; image captcha before submit; confirmation screen on submit",
+    "attachments": ["wholesaler invoice showing latest acquisition cost, redacted to required items"],
+    "appeal_window": "not found in a public CVS Caremark document; state law governs (see statutes.json)",
+    "response_sla": "30 calendar days from submission (secondary source, see sources[3])",
+    "required_fields_basis": "UNVERIFIED: the portal form field labels appear only as screenshots in the public guides. The list is our model; invoice requirement is from a secondary source.",
+    "contact": "MACInquiries@CVSCaremark.com, 1-847-559-3977 (MS Dept of Insurance sheet, May 2021)",
+    "sources": [
+      { "url": "https://www.mimeridian.com/content/dam/centene/meridian/mi/pdf/CVS-Caremark-Pharmacy-Portal-MAC%20Appeals.pdf", "title": "CVS Caremark Pharmacy Portal: MAC Appeals (portal walkthrough)", "doc_date": "2020-08-20", "fetched": "2026-10-10", "supports": "channel, portal path, one account per NCPDP" },
+      { "url": "https://www.buckeyehealthplan.com/content/dam/centene/Buckeye/medicaid/pdfs/CVScaremark-Pharmacy-Portal-MACappeals.pdf", "title": "CVS/caremark Pharmacy Portal: MAC Appeals (earlier edition)", "doc_date": "2016-03-08", "fetched": "2026-10-10", "supports": "channel, portal path, captcha, confirmation" },
+      { "url": "https://www.mbp.ms.gov/sites/default/files/inline-images/PBM%20CONTACT%20INFORMATION%20FOR%20REIMBURSEMENT%20APPEALS.pdf", "title": "Mississippi PBM contact information for reimbursement appeals", "doc_date": "2021-05", "fetched": "2026-10-10", "supports": "channel (portal MAC Menu), inquiry contact" },
+      { "url": "https://www.molinahealthcare.com/members/wa/en-US/PDF/Medicaid/cvs-mac-appeal-process-v5.pdf", "title": "Molina Healthcare: CVS MAC appeal process", "doc_date": "unknown", "fetched": "search snippet only; page blocked on direct fetch", "supports": "30 calendar day resolution" }
+    ]
   },
   "PBM_EMAIL": {
     "channel": "email",
     "version": "pbm_email@2026-10-10",
     "modeled_on": "Express Scripts",
     "required_fields": ["ndc", "rx_number", "fill_date", "invoice_date", "acquisition_cost"],
-    "source_url": "TODO(RES-01)"
+    "source_url": "https://www.mbp.ms.gov/sites/default/files/inline-images/PBM%20CONTACT%20INFORMATION%20FOR%20REIMBURSEMENT%20APPEALS.pdf",
+    "real_channels": ["portal", "email", "fax"],
+    "submission": "Express Scripts Pharmacist Resource Center portal (prc.express-scripts.com), Appeals tab; MACDepartment@express-scripts.com is the listed appeal contact; the Cigna MAC form (Express Scripts affiliate network) also accepts fax or email",
+    "attachments": ["wholesaler invoice showing the NDC of the disputed claim and latest acquisition cost, redacted to required items"],
+    "appeal_window": "30 days from claim fill date or the period required by state law (Cigna MAC Pricing Review Form; Express Scripts' own window not found)",
+    "response_sla": "not found",
+    "required_fields_basis": "Cigna form fields: NCPDP ID, BIN, PCN, Rx number, NDC, claim fill date, drug name/strength/form, compound indicator, reason; invoice with NDC mandatory. The Express Scripts portal form itself was not found. Our vocabulary maps to ndc, rx_number, fill_date plus invoice-derived invoice_date and acquisition_cost.",
+    "contact": "MACDepartment@express-scripts.com, 314-684-5606, https://prc.express-scripts.com (MS Dept of Insurance sheet, May 2021)",
+    "sources": [
+      { "url": "https://www.mbp.ms.gov/sites/default/files/inline-images/PBM%20CONTACT%20INFORMATION%20FOR%20REIMBURSEMENT%20APPEALS.pdf", "title": "Mississippi PBM contact information for reimbursement appeals (Cigna entry names Express Scripts as network affiliate)", "doc_date": "2021-05", "fetched": "2026-10-10", "supports": "email and portal contacts" },
+      { "url": "https://www-cigna-com.extwideip.cigna.com/static/www-cigna-com/docs/form-cigna-mac-appeal.pdf", "title": "Cigna MAC Pricing Review Form", "doc_date": "file metadata 2016-02-02", "fetched": "2026-10-10", "supports": "30-day window, fields, invoice with NDC, fax and email channels" },
+      { "url": "https://www.apcinet.com/APCINews/TabId/416/ArtMID/1695/ArticleID/6614/Helpful-Tips-for-Potential-Increases-in-Reimbursement-Through-Manual-MAC-Appeals.aspx", "title": "APCI: Helpful Tips for Manual MAC Appeals", "doc_date": "unknown", "fetched": "search snippet only; page returned 403", "supports": "portal Appeals tab, invoice with latest acquisition cost required" }
+    ]
   },
   "PBM_FAX": {
     "channel": "fax",
     "version": "pbm_fax@2026-10-10",
     "modeled_on": "OptumRx",
-    "required_fields": ["ndc", "rx_number", "fill_date", "invoice_number", "acquisition_cost"],
-    "source_url": "TODO(RES-01)"
+    "required_fields": ["ndc", "rx_number", "fill_date", "acquisition_cost"],
+    "source_url": "https://business.optum.com/en/support/professionalrx-resources/appeals-submission-guide.html",
+    "real_channels": ["portal"],
+    "channel_note": "The current OptumRx guide accepts portal spreadsheet submission only; email is for supporting invoices in AR and TN. Fax is not a current OptumRx door (a 2015-2016 Catamaran form used fax). The fax channel here is a demo choice to show channel breadth.",
+    "submission": "OptumRx Pharmacy Portal with OptumID, approved MAC Appeal spreadsheet; any other form of submission is not accepted",
+    "attachments": ["invoice only on request or state-specific (AR and TN invoices emailed to MAC@Optum.com with Rx number, fill date, NDC in body)"],
+    "appeal_window": "30 days from claim fill date or the period required by state law; TN 7 business days; late appeals not reviewed",
+    "response_sla": "TN 7 business days after complete submission; no general SLA published",
+    "required_fields_basis": "Guide requires BIN, NCPDP ID, Rx number (12 digits), fill date, reason for review; per-unit acquisition cost required in AR, MS, NM, TN, WA and others; TN notes column takes the wholesaler or manufacturer name. NDC is required in the emailed invoice context (AR). invoice_number is not requested, so it is not in this spec.",
+    "contact": "MAC@Optum.com, 1-800-613-3591 ext 9 (TN questions)",
+    "sources": [
+      { "url": "https://business.optum.com/en/support/professionalrx-resources/appeals-submission-guide.html", "title": "OptumRx MAC Appeal Submission Guide and FAQ", "doc_date": "undated; spreadsheet name suggests 2026-03-25; copyright 2026", "fetched": "2026-10-10", "supports": "channel, fields, window, SLA, state notes" },
+      { "url": "https://campaign.optum.com/content/dam/optum/resources/OptumRxMACAppealSubmissionGuideFAQ-April-1-2016.pdf", "title": "OptumRx MAC Appeal Submission Guide and FAQ (April 1, 2016 edition)", "doc_date": "2016-04-01", "fetched": "listed in search results, not fetched", "supports": "historical reference only" },
+      { "url": "https://www.mbp.ms.gov/sites/default/files/inline-images/PBM%20CONTACT%20INFORMATION%20FOR%20REIMBURSEMENT%20APPEALS.pdf", "title": "Mississippi PBM contact information for reimbursement appeals", "doc_date": "2021-05", "fetched": "2026-10-10", "supports": "MAC@Optum.com contact" }
+    ]
   }
 }
