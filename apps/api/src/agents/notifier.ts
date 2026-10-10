@@ -7,7 +7,7 @@ import { config } from "../config";
 import { getDb, type ClaimRecord } from "../db";
 import { bus } from "../events";
 import { ledgerSummary } from "../ledger/settle";
-import { send } from "../messaging";
+import { send, sendVoice } from "../messaging";
 import { approveClaim, getPolicy, setPolicy } from "../policy";
 import { tts } from "../voice";
 
@@ -39,17 +39,52 @@ export async function summarizeDay(pharmacyId: string, now = new Date()) {
   };
 }
 
-export async function sendDigest(pharmacyId: string): Promise<ChannelMessage> {
-  const s = await summarizeDay(pharmacyId);
-  const day = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" });
+type DaySummary = Awaited<ReturnType<typeof summarizeDay>>;
+
+/** Text and spoken script come from one summary, so the voice note repeats the text's figures. */
+export function digestScripts(s: DaySummary, now = new Date()) {
+  const day = now.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const need = s.exceptions ? ` ${s.exceptions} need you.` : "";
   const text =
     `RxSolve ${day}: found ${s.found} underpaid claims (${money(s.found_amt)}). ` +
     `Filed ${s.filed}, ${s.pending} pending, recovered ${money(s.recovered)}. ` +
-    `This week: ${money(s.week_recovered)}.` +
-    (s.exceptions ? ` ${s.exceptions} need you.` : "") +
-    ` Reply DETAILS or PAUSE.`;
-  const audio = await tts(text); // stretch (AGT-09): null if ElevenLabs is not configured
-  return send("imessage", config.pharmacistPhone, text, { counterparty: "pharmacist", audio });
+    `This week: ${money(s.week_recovered)}.${need} Reply DETAILS or PAUSE.`;
+  const spoken =
+    `RxSolve recap for ${day}. Found ${s.found} underpaid claims, ${money(s.found_amt)} in total. ` +
+    `Filed ${s.filed}, ${s.pending} pending, recovered ${money(s.recovered)}. ` +
+    `This week, ${money(s.week_recovered)} recovered.${need} Reply DETAILS or PAUSE.`;
+  return { text, spoken };
+}
+
+type Speaker = (text: string) => Promise<{ bytes: Uint8Array; url: string } | null>;
+let speak: Speaker = tts;
+let recap: Promise<ChannelMessage | null> = Promise.resolve(null);
+
+/** Tests swap ElevenLabs for a stub; null restores it. */
+export function setSpeaker(fn: Speaker | null) {
+  speak = fn ?? tts;
+}
+
+/** Settles with the voice-note message, or null when TTS is off or failed. Never rejects. */
+export const voiceRecapDone = () => recap;
+
+/** The text goes out first; the voice note follows as its own message and never delays or blocks it. */
+export async function sendDigest(pharmacyId: string): Promise<ChannelMessage> {
+  const { text, spoken } = digestScripts(await summarizeDay(pharmacyId));
+  const msg = await send("imessage", config.pharmacistPhone, text, { counterparty: "pharmacist" });
+  recap = (async () => {
+    try {
+      const audio = await speak(spoken);
+      if (!audio) return null;
+      return await sendVoice(config.pharmacistPhone, audio, {
+        counterparty: "pharmacist", text: "Voice recap", meta: { recap_of: msg.ts },
+      });
+    } catch (e) {
+      console.warn("voice recap dropped:", e);
+      return null;
+    }
+  })();
+  return msg;
 }
 
 const POLICY_REASON = /auto-file limit|paused/;

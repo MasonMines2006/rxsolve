@@ -73,3 +73,11 @@ export async function sendViaSpectrum(channel: MessageChannel, to: string, text:
   await space.send(text);
   if (audio) await space.send(voice(Buffer.from(audio), { name: "recap.mp3", mimeType: "audio/mpeg" }));
 }
+
+/** Voice note only; the text it recaps was already sent on its own. */
+export async function sendVoiceViaSpectrum(to: string, audio: Uint8Array) {
+  if (!app) throw new Error("spectrum not started");
+  const im = imessage(app);
+  const space = await im.space.create(await im.user(to));
+  await space.send(voice(Buffer.from(audio), { name: "recap.mp3", mimeType: "audio/mpeg" }));
+}

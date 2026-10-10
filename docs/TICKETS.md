@@ -128,7 +128,7 @@ Orchestrator updates this table as work lands. Status: `not started`, `in progre
 | AGT-06 | done | Remediate and refile tested on direct and fax adapters against fake doors; wholesaler WhatsApp stubbed without creds; portal/email/fax PBM Sim doors (P1) still to be run live |
 | AGT-07 | in progress | Digest, exception asks, reply commands done and tested offline; "done when" needs a digest on a real phone with Photon creds |
 | AGT-08 | not started | Stretch |
-| AGT-09 | not started | Stretch; `voice.ts` written |
+| AGT-09 | in progress | Code complete and tested offline; "done when" needs a real key and a real phone |
 
 ### RES-01 | T+0 to T+3 | PBM appeal procedure and NCPDP field research
 

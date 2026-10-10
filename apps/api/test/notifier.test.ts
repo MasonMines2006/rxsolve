@@ -1,7 +1,10 @@
 /** Pharmacist notifier (AGT-07): digest, exception pings, reply commands. No network, no creds. */
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import type { Claim, Evidence } from "@rxsolve/contracts";
-import { handleReply, raiseException, sendDigest, setRefileHandler, summarizeDay } from "../src/agents/notifier";
+import {
+  digestScripts, handleReply, raiseException, sendDigest, setRefileHandler, setSpeaker, summarizeDay, voiceRecapDone,
+} from "../src/agents/notifier";
+import { tts } from "../src/voice";
 import { config } from "../src/config";
 import { getDb, resetDb, type ClaimRecord } from "../src/db";
 import { resetLedger } from "../src/ledger";
@@ -35,6 +38,7 @@ let saved = { ...config };
 afterEach(() => {
   Object.assign(config, saved);
   setRefileHandler(null);
+  setSpeaker(null);
 });
 
 beforeEach(() => {
@@ -140,4 +144,42 @@ test("only the configured pharmacist handle may command the notifier", () => {
   expect(senderAllowed("Me@Example.com", "me@example.com")).toBe(true);
   expect(senderAllowed("anyone", "")).toBe(true);
   expect(senderAllowed("", "+15550102000")).toBe(false);
+});
+
+const SUMMARY = { found: 3, found_amt: 187.5, filed: 2, pending: 4, exceptions: 1, recovered: 62.25, week_recovered: 310 };
+
+test("spoken recap contains every figure from the text digest", () => {
+  const { text, spoken } = digestScripts(SUMMARY, new Date("2026-10-10T12:00:00"));
+  const figures = text.match(/\$?\d+(?:\.\d+)?/g)!;
+  expect(figures.length).toBeGreaterThanOrEqual(8);
+  for (const f of figures) expect(spoken).toContain(f);
+});
+
+test("voice recap follows the text as its own message with audio_url", async () => {
+  const spoken: string[] = [];
+  setSpeaker(async (t) => (spoken.push(t), { bytes: new Uint8Array([1, 2]), url: "/audio/test.mp3" }));
+  const msg = await sendDigest(PH);
+  expect(msg.audio_url).toBeNull();
+  const vm = await voiceRecapDone();
+  expect(vm?.audio_url).toBe("/audio/test.mp3");
+  expect(vm?.direction).toBe("out");
+  expect(spoken).toHaveLength(1);
+});
+
+test("digest text is returned without waiting on a slow TTS", async () => {
+  let release!: () => void;
+  setSpeaker(() => new Promise((r) => { release = () => r(null); }));
+  const msg = await sendDigest(PH);
+  expect(msg.text).toContain("RxSolve");
+  release();
+  expect(await voiceRecapDone()).toBeNull();
+});
+
+test("TTS failure or missing key leaves the text digest intact", async () => {
+  setSpeaker(async () => { throw new Error("boom"); });
+  const msg = await sendDigest(PH);
+  expect(msg.text).toContain("RxSolve");
+  expect(await voiceRecapDone()).toBeNull();
+  setSpeaker(null);
+  expect(await tts("hi")).toBeNull(); // no ELEVENLABS_API_KEY
 });

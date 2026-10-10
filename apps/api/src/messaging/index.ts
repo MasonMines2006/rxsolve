@@ -5,7 +5,28 @@
  */
 import type { ChannelMessage, MessageChannel } from "@rxsolve/contracts";
 import { record } from "../transcript";
-import { sendViaSpectrum, spectrumReady } from "./spectrum";
+import { sendViaSpectrum, sendVoiceViaSpectrum, spectrumReady } from "./spectrum";
+
+/** A voice note recorded as its own channel.message with `audio_url`; the text it recaps went out first. */
+export async function sendVoice(
+  to: string, audio: { bytes: Uint8Array; url: string },
+  opts: { counterparty: string; text: string; meta?: Record<string, unknown> },
+): Promise<ChannelMessage> {
+  const meta: Record<string, unknown> = { to, ...opts.meta };
+  if (spectrumReady() && to) {
+    try {
+      await sendVoiceViaSpectrum(to, audio.bytes);
+      meta.delivered = true;
+    } catch (e) {
+      console.warn("spectrum voice send failed, dashboard only:", e);
+      meta.delivered = false;
+    }
+  }
+  return record({
+    channel: "imessage", direction: "out", counterparty: opts.counterparty,
+    text: opts.text, audio_url: audio.url, meta,
+  });
+}
 
 export async function send(
   channel: MessageChannel, to: string, text: string,
