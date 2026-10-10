@@ -27,6 +27,7 @@ Update this as work lands. Mark a ticket done when its "Done when" in `TICKETS.m
 | UI-04 | P3 | todo | |
 | UI-05 | P3 | todo | |
 | UI-06 | P3 | todo | |
+| UI-07 | P3 | todo | Theme system: dark, light, Frutiger Aero |
 
 ## Stubbed integrations
 

@@ -12,4 +12,5 @@ Running log of decisions and contract changes. One entry per line: date, decisio
 | 2026-10-10 | Fax is mocked inside PBM Sim | Bandwidth offers T.38 SIP only, no fax API; real fax provider is out of scope for 12 hours |
 | 2026-10-10 | Phone negotiation is a stretch goal, built after the three core channels | Highest build risk; has simulated-rep and recorded fallbacks |
 | 2026-10-10 | Cashier becomes a PMS mock emitting NCPDP-shaped B1 claims; switch responses and 835-style remittance records follow real field names | Hooks into real standards for credibility without paying for wire-format fidelity; positioned as sitting beside the existing claim switch |
+| 2026-10-10 | Add a dark / light / Frutiger Aero theme switcher via CSS-variable tokens | Frutiger Aero track; tokens from UI-01 keep the Aero skin cheap and avoid retrofits |
 | 2026-10-10 | Nessie settlement modeled as remittance deposit plus fee transfer, not "reversing bills" | Matches how PBMs actually adjust payment; bills remain the fallback if transfers are unavailable |

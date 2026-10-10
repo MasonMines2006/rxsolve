@@ -38,6 +38,7 @@ Three PBM personas, each modeled on a real PBM's public appeal procedure. Open b
 | Photon | Daily digest and live exception on the pharmacist's iMessage; wholesaler remediation over WhatsApp/SMS |
 | Nessie | Recovery visibly moving real balances between pharmacy, PBM, and platform accounts |
 | ElevenLabs | Voice recap in the digest; phone negotiation with the PBM rep (stretch) |
+| Frutiger Aero track | Flip the dashboard from dark to light to Frutiger Aero live during the run; the PMS mock and pharmacist phone flip with it |
 
 ## 21. Submission Assets
 

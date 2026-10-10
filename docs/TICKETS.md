@@ -6,7 +6,7 @@ Part of the technical design. See [DESIGN.md](DESIGN.md) for architecture and [B
 |---|---|
 | P1 | INF-01 to INF-06 |
 | P2 | RES-01, AGT-01 to AGT-07 |
-| P3 | UI-01 to UI-06 |
+| P3 | UI-01 to UI-07 |
 
 ## P1: Infrastructure, PBM Sim & Ledger
 
@@ -186,9 +186,9 @@ ElevenLabs STT/TTS loop. Build against a simulated rep over WebSocket audio firs
 
 ### UI-01 | T+3 to T+5 | Next.js shell + WebSocket client
 
-Structure over polish. Panels rendering live data.
+Structure over polish. Panels rendering live data. Style values come from CSS variables from day one (see UI-07).
 
-**Done when:** all panels receive and render events from `/ws/live`.
+**Done when:** all panels receive and render events from `/ws/live`, and no component hardcodes a color, radius, or shadow.
 
 ### UI-02 | T+5 to T+7 | PMS mock and cashier terminal
 
@@ -207,6 +207,14 @@ Real numbers only. Kanban with deadline countdowns, PBM and channel shown per ca
 Per claim, render the exchange on its channel (portal fill, email, fax, wholesaler chat) as it happens. Render the pharmacist's digest and exceptions as a phone mock.
 
 **Done when:** the exchange renders live, step by step, during a full run-through on all three channels.
+
+### UI-07 | T+9 to T+10 | Theme system: dark, light, Frutiger Aero
+
+Token-based theming (DESIGN.md section 12.1). Define the variable set once (surfaces, text, accent, radius, shadow, blur, gradients), a switcher in the header, and the Aero skin: glass panels, gradients, glossy buttons, pill controls, background imagery. Persist the choice per viewer.
+
+Start the token layer in UI-01 so no component hardcodes style values; this ticket is the skins and the switcher.
+
+**Done when:** all panels, the PMS mock, and the pharmacist phone render correctly in all three themes, the switcher flips them live without reload, and text and money values are legible in Aero.
 
 ### UI-05 | T+10 to T+11 | Demo gate
 

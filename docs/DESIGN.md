@@ -2,13 +2,14 @@
 
 *Rx + resolve.* A payments processor for pharmacies that guarantees every prescription claim resolves at or above acquisition cost, recovering in-flight and automatically, with no human filing anything.
 
-HackNC, MLH Sponsor Challenges, v1.2. October 10, 2026. 24-hour event, 12-hour build window, 3 people.
+HackNC, MLH Sponsor Challenges, v1.3. October 10, 2026. 24-hour event, 12-hour build window, 3 people.
 
 | Sponsor | Role |
 |---|---|
 | Photon Spectrum | Pharmacist channel (iMessage digest and exceptions); WhatsApp/SMS to wholesaler |
 | Capital One Nessie | Ledger: remittance deposits and fee transfers |
 | ElevenLabs | Voice recap in the digest; phone negotiation with the PBM (stretch) |
+| Frutiger Aero track | Three-way theme switcher on the dashboard: dark, light, and Frutiger Aero |
 
 Related docs: [BUILD_PLAN.md](BUILD_PLAN.md), [TICKETS.md](TICKETS.md), [DEMO.md](DEMO.md), [DECISIONS.md](DECISIONS.md), [STATUS.md](STATUS.md).
 
@@ -59,7 +60,7 @@ The product is channel-agnostic: one detection and evidence core, one adapter pe
 - Deadline clock with state-regulator escalation path
 - Nessie settlement: PBM remittance deposit plus contingency fee transfer, backed by an 835-style remittance record
 - ElevenLabs voice recap inside the digest
-- Dashboard plus cashier terminal
+- Dashboard plus cashier terminal, with a dark / light / Frutiger Aero theme switcher
 - 60-claim seeded history (~18 underwater), spread across the three PBM personas
 - Abandonment logging with reasons, reported honestly
 
@@ -583,6 +584,24 @@ async def settle_recovery(claim: Claim, delta: Decimal, fee_pct: float = 0.25) -
 | Channel Viewer | Per claim, the exchange on its channel: portal form fill, email, fax, wholesaler chat. The proof that the agent worked the PBM's real door. |
 | Pharmacist Phone | The iMessage digest and exceptions as the pharmacist sees them |
 
+### 12.1 Theming
+
+One component set, three themes, switched at runtime from a control in the header and persisted per viewer.
+
+| Theme | Character |
+|---|---|
+| Dark | Low-luminance surfaces, muted accents, the default for the demo room |
+| Light | High-luminance surfaces, same layout and density |
+| Frutiger Aero | Early-2000s gloss: sky and aqua gradients, glassy translucent panels, soft highlights and drop shadows, rounded pill controls, glossy buttons, nature and bubble motifs, skeuomorphic status badges |
+
+Rules:
+
+- Themes are CSS variables on `data-theme="dark|light|aero"` at the root. Components never hardcode colors, radii, shadows, or backgrounds.
+- Aero is a full skin, not a recolor: it changes surfaces (glass blur, gradients), controls (glossy buttons, pill toggles), and decoration (background imagery, glow), via tokens plus a small set of theme-scoped component styles.
+- Layout, data, and WebSocket behavior are identical across themes. Switching is instant and never reloads.
+- The PMS mock cashier terminal and the pharmacist phone mock are themed too, so the whole demo can flip live.
+- Legibility holds in every theme: text contrast stays accessible on glass panels, and money values never sit on busy imagery.
+
 ## 13. Infrastructure
 
 | Component | Tool | Notes |
@@ -597,7 +616,7 @@ async def settle_recovery(claim: Claim, delta: Decimal, fee_pct: float = 0.25) -
 | Voice | ElevenLabs STT + TTS | Self-implemented loop |
 | Ledger | Capital One Nessie REST | Version probe at T+0 |
 | Database | MongoDB Atlas free tier | Seeded with 60 claims, ~18 underwater |
-| Frontend | Next.js + WebSocket | Dashboard plus the PMS mock cashier terminal |
+| Frontend | Next.js + WebSocket | Dashboard plus the PMS mock cashier terminal; CSS-variable theming (12.1) |
 | Tunnel | ngrok / Cloudflare Tunnel | Only if the webhook path is chosen for Spectrum |
 
 ## 14. Trust & Safety Model

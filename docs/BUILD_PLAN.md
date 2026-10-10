@@ -23,7 +23,7 @@ Three people, self-assigned. The only hard requirement is that P1 owns the money
 | T+3 to 5 | Watcher and Evidence Builder producing PBM-shaped appeal artifacts. PBM Sim portal form live. |
 | T+5 to 7 | Portal adapter files a claim and reads the denial. Email adapter and inbox working. |
 | T+7 to 9 | Fax adapter and fax line. Negotiation loop: denial, wholesaler remediation, refile, concession, ledger settlement. |
-| T+9 to 10 | Digest and exception pings on iMessage. Voice recap. Dashboard wired to live data. Phone negotiator starts only if everything above is green. |
+| T+9 to 10 | Digest and exception pings on iMessage. Voice recap. Dashboard wired to live data. Theme skins and switcher (UI-07). Phone negotiator starts only if everything above is green. |
 | T+10 to 11 | **Demo gate.** Full run-through twice. Anything not green gets cut. |
 | T+11 to 12 | **Freeze.** README, screenshots, backup recording, sponsor-prize checklist verified. |
 
