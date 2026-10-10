@@ -1,0 +1,11 @@
+{
+  "name": "agent-coordinator",
+  "owner": { "name": "smoghe and nasanov" },
+  "plugins": [
+    {
+      "name": "agent-coordinator",
+      "source": "./",
+      "description": "Send messages between Claude Code agents on different computers."
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "name": "agent-coordinator",
+  "version": "0.3.0",
+  "description": "Run and use an agent coordinator: send messages between Claude Code agents on different computers, pushed into subscribed sessions. Skills host, join and coordinator cover the whole lifecycle.",
+  "author": {
+    "name": "smoghe and nasanov"
+  }
+}

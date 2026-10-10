@@ -1,0 +1,20 @@
+"""Word list for generated passwords: 220 short, common, easy-to-say words (about 7.8 bits each)."""
+
+WORDS = (
+    "acorn amber anchor apple arrow aspen atlas badge baker banjo barn basil beach beam bear "
+    "berry birch bison blaze bloom boat bolt bonus brave bread brick bridge brook broom cabin "
+    "cable cactus camel candle canoe canyon cargo cedar chalk charm chess chime cider cliff "
+    "clock cloud clover cobalt comet coral cotton crane creek crisp crown daisy dance delta "
+    "denim desert diver dolphin dragon drift dune eagle earth ember engine fable falcon fancy "
+    "feast fern ferry field finch flame flint flute forest fox frost garden garlic gecko ginger "
+    "glacier glow goat gold grape gravel grove guitar harbor hazel heron hill honey horizon "
+    "hubble igloo island ivory jacket jade jelly jungle kayak kettle kite lagoon lantern lemon "
+    "lilac linen lion lotus lunar magnet maple marble meadow melon mint mirror moose mosaic "
+    "mango nectar nickel noble north oasis ocean olive onyx orbit orchid otter oyster paddle "
+    "panda paper peach pebble pepper piano pilot pine planet plum pocket polar pond poppy prism "
+    "pumpkin puzzle quail quartz quilt rabbit radar rain raven reef ribbon river robin rocket "
+    "saddle sage sailor salmon sand scarlet shadow shell silver sketch sky slate snow solar "
+    "spark spice spruce squirrel star stone storm sugar summit sunset swan tango teal tiger "
+    "timber tomato topaz tulip tundra turtle valley velvet violet walnut water willow window "
+    "winter wolf yarn yellow zebra zephyr zinc"
+).split()
