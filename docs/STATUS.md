@@ -12,7 +12,7 @@ Update this as work lands. Mark a ticket done when its "Done when" in `TICKETS.m
 | INF-04 | P1 | todo | |
 | INF-05 | P1 | todo | |
 | INF-06 | P1 | todo | |
-| RES-01 | P2 | todo | PBM appeal procedure research |
+| RES-01 | P2 | todo | PBM appeal procedures + NCPDP/835 field verification |
 | AGT-01 | P2 | todo | |
 | AGT-02 | P2 | todo | |
 | AGT-03 | P2 | todo | Portal adapter |
@@ -22,7 +22,7 @@ Update this as work lands. Mark a ticket done when its "Done when" in `TICKETS.m
 | AGT-07 | P2 | todo | Notifier, digest, voice recap |
 | AGT-08 | P2 | todo | Stretch: phone negotiator |
 | UI-01 | P3 | todo | |
-| UI-02 | P3 | todo | |
+| UI-02 | P3 | todo | PMS mock + cashier terminal |
 | UI-03 | P3 | todo | |
 | UI-04 | P3 | todo | |
 | UI-05 | P3 | todo | |

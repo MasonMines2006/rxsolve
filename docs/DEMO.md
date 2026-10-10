@@ -51,4 +51,6 @@ Three PBM personas, each modeled on a real PBM's public appeal procedure. Open b
 
 The PBMs are mocks, modeled on the public appeal procedures of CVS Caremark, Express Scripts, and OptumRx, with no real logos or integrations. Fax transport is simulated. Everything on our side is real: detection, evidence assembly, statutory citation, per-channel filing, negotiation, remediation, and settlement run against real message and ledger infrastructure.
 
+The pharmacy system and claim switch speak NCPDP-shaped messages (JSON with the real field IDs, not the wire format), and remittances are 835-style records. We call them "NCPDP-shaped", never "compliant".
+
 Because RxSolve talks to each PBM through an adapter, pointing it at a real PBM is a new adapter and a spec, not a redesign.

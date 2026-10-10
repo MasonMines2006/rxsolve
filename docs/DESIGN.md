@@ -2,7 +2,7 @@
 
 *Rx + resolve.* A payments processor for pharmacies that guarantees every prescription claim resolves at or above acquisition cost, recovering in-flight and automatically, with no human filing anything.
 
-HackNC, MLH Sponsor Challenges, v1.1. October 10, 2026. 24-hour event, 12-hour build window, 3 people.
+HackNC, MLH Sponsor Challenges, v1.2. October 10, 2026. 24-hour event, 12-hour build window, 3 people.
 
 | Sponsor | Role |
 |---|---|
@@ -48,6 +48,7 @@ The product is channel-agnostic: one detection and evidence core, one adapter pe
 
 ### 2.1 In
 
+- A pharmacy management system (PMS) mock whose cashier terminal emits NCPDP-shaped claims and displays NCPDP-shaped responses
 - Real-time underpayment detection at point of sale (NADAC + acquisition cost + contract rate)
 - Statutory citation generation with per-state appeal windows
 - Evidence PDF assembly from the wholesaler invoice line
@@ -56,7 +57,7 @@ The product is channel-agnostic: one detection and evidence core, one adapter pe
 - Pharmacist iMessage digest, exception pings, and a standing authorization policy
 - Wholesaler document requests over WhatsApp/SMS
 - Deadline clock with state-regulator escalation path
-- Nessie settlement: PBM remittance deposit plus contingency fee transfer
+- Nessie settlement: PBM remittance deposit plus contingency fee transfer, backed by an 835-style remittance record
 - ElevenLabs voice recap inside the digest
 - Dashboard plus cashier terminal
 - 60-claim seeded history (~18 underwater), spread across the three PBM personas
@@ -70,6 +71,7 @@ The product is channel-agnostic: one detection and evidence core, one adapter pe
 
 - Real PBM portals or real payer integrations; the PBMs are mocks modeled on public procedures
 - Real fax transport (see 13)
+- NCPDP wire-format fidelity or certification; messages are JSON with the real field names
 - Real NADAC API (seeded fixture only)
 - Multi-pharmacy or multi-state rollout beyond the demo
 - Any real PHI (synthetic patient references only)
@@ -91,15 +93,16 @@ The product is channel-agnostic: one detection and evidence core, one adapter pe
 | Wholesaler Contact | P2 | WhatsApp/SMS document requests for missing attestations and invoices. |
 | PBM Sim | P1 | Standalone service. One deterministic decision engine behind three front doors (portal, email inbox, fax line) plus a phone rep (stretch). Three personas modeled on public PBM appeal procedures. |
 | Nessie Ledger | P1 | Pharmacy, PBM, platform, and patient accounts as real ledger entities. |
-| Dashboard | P3 | Cashier terminal, recovery feed, pipeline board, ledger panel, channel/thread viewer. |
+| PMS Mock | P3 | The pharmacy's dispensing system and cashier terminal. Emits NCPDP-shaped B1 claims to the PBM Sim switch and renders the NCPDP-shaped response. |
+| Dashboard | P3 | Recovery feed, pipeline board, ledger panel, channel viewer. |
 
 ## 4. Architecture
 
 ```
-Cashier Terminal (P3)         patient pays
+PMS Mock / Cashier (P3)       NCPDP-shaped B1 claim
         |
         v
-PBM Sim switch  <---- claim ----  Orchestrator (P1)   gates transitions
+PBM Sim switch  <-- claim feed --  Orchestrator (P1)   gates transitions
  (adjudicates)                         |
                                        +--> Adjudication Watcher (P2)    deterministic
                                        +--> Evidence Builder (P2)        fully agentic
@@ -126,8 +129,8 @@ PBM Sim shares no code or database with the agents. The agents reach it only ove
 ### 5.1 Happy path with remediation (the demo path)
 
 ```
-Cashier pays -> PBM Sim switch pays -> Watcher flags -> Evidence Builder -> Adapter files
-(POST /charge)   paid = $6.40         UNDERWATER       (invoice+statute)   via PBM's channel
+PMS submits B1 -> PBM Sim switch pays -> Watcher flags -> Evidence Builder -> Adapter files
+(NCPDP-shaped)  paid = $6.40         UNDERWATER       (invoice+statute)   via PBM's channel
       |
       v
 PBM Sim denies -> Negotiation -> Wholesaler   -> Adapter refiles -> PBM Sim approves
@@ -137,8 +140,8 @@ PBM Sim denies -> Negotiation -> Wholesaler   -> Adapter refiles -> PBM Sim appr
 Nessie deposit + fee -> Digest to pharmacist -> Voice recap in digest
 ```
 
-1. Cashier submits `{ndc, qty, plan}`
-2. PBM Sim switch adjudicates: paid $6.40 against acquisition cost $12.80
+1. PMS mock submits an NCPDP-shaped B1 claim (NDC, quantity, days supply, date of service, submitted cost)
+2. PBM Sim switch returns a paid response: total amount paid $6.40 against acquisition cost $12.80
 3. Watcher: UNDERWATER, delta = $6.40, deadline = TN, 7 business days
 4. Evidence Builder assembles the appeal PDF plus citation block
 5. Filing selects the adapter for the claim's PBM and submits (portal form, email, or fax)
@@ -153,12 +156,12 @@ Nessie deposit + fee -> Digest to pharmacist -> Voice recap in digest
 
 | Stage | Data contract |
 |---|---|
-| Human input | Seeded claim set in `MongoDB.claims`; live claims from the cashier terminal |
+| Human input | Seeded claim set in `MongoDB.claims`; live claims from the PMS mock cashier terminal |
 | Watcher | claim to `{paid, acquisition_cost, nadac, contract_rate}` to verdict |
 | Evidence | verdict + state + PBM spec to citation + invoice PDF + completeness |
 | Filing | evidence + PBM spec to channel adapter to `ticket` |
 | Negotiation | denial to diagnose to remediate (WhatsApp/SMS) to refile |
-| Ledger | APPROVED to Nessie remittance deposit + 25% contingency fee |
+| Ledger | APPROVED to 835-style remittance record, Nessie deposit, and 25% contingency fee |
 | Notifier | state transitions to daily digest, exception pings |
 | Dashboard | WebSocket stream of all state transitions and ledger balances |
 
@@ -166,22 +169,53 @@ Nessie deposit + fee -> Digest to pharmacist -> Voice recap in digest
 
 **Claim**
 
+The NCPDP-shaped request and response are carried verbatim under `ncpdp`; the flat fields are derived for the agents. Field IDs are from memory and are verified in RES-01.
+
 ```json
 {
   "claim_id": "RXS-0001",
   "pharmacy_id": "PH-MEADOWBROOK",
-  "ndc": "00378-0018-01",
-  "qty": 1000,
+  "pbm": "PBM_PORTAL",
+  "state": "TN",
   "plan": "TN Part D",
+  "patient_ref": "PT-7F3A",
+  "ndc": "00378001801",
+  "qty": 1000,
   "fill_date": "2026-03-14",
   "paid_amount": 6.40,
   "acquisition_cost": 12.80,
   "nadac": 11.95,
   "contract_rate": 7.10,
-  "state": "TN",
-  "pbm": "PBM_PORTAL"
+  "ncpdp": {
+    "transaction": "B1",
+    "request": {
+      "401-D1": "20260314",
+      "402-D2": "1048213",
+      "407-D7": "00378001801",
+      "442-E7": 1000,
+      "405-D5": 30,
+      "409-D9": 14.50,
+      "426-DQ": 18.00
+    },
+    "response": {
+      "112-AN": "P",
+      "506-F6": 6.40,
+      "505-F5": 0.00,
+      "509-F9": 6.40,
+      "511-FB": null
+    }
+  }
 }
 ```
+
+| Derived field | Source |
+|---|---|
+| `ndc` | `407-D7` |
+| `qty` | `442-E7` |
+| `fill_date` | `401-D1` |
+| `paid_amount` | `509-F9` (total amount paid) |
+
+`acquisition_cost`, `nadac`, and `contract_rate` come from the invoice store, the NADAC fixture, and the contract table, never from the claim message.
 
 **Watcher verdict**
 
@@ -235,6 +269,36 @@ Nessie deposit + fee -> Digest to pharmacist -> Voice recap in digest
   ]
 }
 ```
+
+### 5.4 Standards alignment
+
+| Real-world standard | Where it appears | Fidelity |
+|---|---|---|
+| NCPDP Telecommunication D.0 (B1 bill, B2 reverse, B3 rebill) | PMS mock to PBM Sim switch | JSON with real field IDs; not the delimited wire format |
+| X12 835 electronic remittance advice | PBM adjustment record behind each Nessie deposit | 835-style record with the key fields |
+| X12 810 invoice | Wholesaler invoice line in the seed and evidence PDF | 810-style line item |
+| PBM payer sheets and MAC appeal procedures | `specs` collection, persona behavior | Cited from public documents in RES-01 |
+
+Positioning: RxSolve sits beside the pharmacy's existing claim switch, reading adjudication responses and invoice feeds. The pharmacy changes nothing. In the demo, call the messages "NCPDP-shaped", never "NCPDP compliant".
+
+**Remittance record (835-style)**
+
+```json
+{
+  "remittance_id": "REM-0001",
+  "type": "835-style",
+  "payer": "PBM-PORTAL",
+  "payee": "PH-MEADOWBROOK",
+  "claim_id": "RXS-0001",
+  "paid_original": 6.40,
+  "adjustment": 6.40,
+  "paid_total": 12.80,
+  "reason": "MAC appeal approved",
+  "posted_at": "2026-03-14T15:09:40Z"
+}
+```
+
+The Nessie deposit references this record's `remittance_id` in its memo.
 
 ## 6. Agent Architecture
 
@@ -402,7 +466,7 @@ The channel mix is our design choice to show breadth. We do not claim any real P
 
 | Door | Interface |
 |---|---|
-| Switch | `POST /switch/claim` returns `paid`, reject codes; used by the cashier terminal |
+| Switch | `POST /switch/claim` accepts an NCPDP-shaped B1 (also B2 reversal, B3 rebill) and returns an NCPDP-shaped response with total amount paid and reject codes; used by the PMS mock |
 | Portal | HTML form + status page, per-persona styling and field names |
 | Inbox | Mailbox with HTTP API; inbound mail triggers a templated reply after a delay |
 | Fax line | `POST /fax` accepts a PDF; the reply is rendered as a scanned-look PDF and queued on a return line |
@@ -465,6 +529,7 @@ def deadline_for(state, fill_date) -> date:
 | `specs` | Per-PBM appeal specs: channel, required fields, formats, response SLA, source URL | `pbm`, `version` |
 | `statutes` | Per-state entitlement text, appeal windows, regulator contact | `state` |
 | `ledger_events` | Every Nessie movement | `claim_id`, `pharmacy_id` |
+| `remittances` | 835-style remittance record per approved appeal | `claim_id`, `remittance_id` |
 | `transcript` | Per claim, every message on every channel (portal receipts, emails, fax PDFs, wholesaler chat, iMessage) | `claim_id`, `ts` |
 | `policy` | Pharmacist standing authorization | `pharmacy_id` |
 | `audit` | Append-only log of agent spawns, gate decisions, state transitions | `claim_id`, `ts` |
@@ -496,6 +561,7 @@ async def settle_recovery(claim: Claim, delta: Decimal, fee_pct: float = 0.25) -
         from_=claim.pharmacy_account, to_=PLATFORM_ACCOUNT,
         amount=round(delta * fee_pct, 2), memo=f"contingency fee {claim.claim_id}",
     )
+    await db.remittances.insert_one(remittance_record(claim, delta))
     await db.ledger_events.insert_one(snapshot(claim, delta, fee_pct))
 ```
 
@@ -510,7 +576,7 @@ async def settle_recovery(claim: Claim, delta: Decimal, fee_pct: float = 0.25) -
 
 | Panel | Contents |
 |---|---|
-| Cashier Terminal | Patient queue, line items, live adjudication result. Shows RESOLVED ABOVE COST or an in-flight recovery badge. |
+| PMS Mock / Cashier Terminal | The pharmacy's dispensing screen: patient queue, line items, NCPDP-shaped response. Shows RESOLVED ABOVE COST or an in-flight recovery badge. |
 | Live Recovery Feed | Cards as claims resolve: drug, delta, PBM, channel, deadline countdown, status |
 | Pipeline Board | Kanban: DETECTED, EVIDENCE, FILED, NEGOTIATING, SETTLED, plus ESCALATED and ABANDONED. Deadline clock per card. |
 | Ledger Panel | Nessie balances, recovered-to-date, fees accrued |
@@ -531,7 +597,7 @@ async def settle_recovery(claim: Claim, delta: Decimal, fee_pct: float = 0.25) -
 | Voice | ElevenLabs STT + TTS | Self-implemented loop |
 | Ledger | Capital One Nessie REST | Version probe at T+0 |
 | Database | MongoDB Atlas free tier | Seeded with 60 claims, ~18 underwater |
-| Frontend | Next.js + WebSocket | Dashboard plus cashier terminal |
+| Frontend | Next.js + WebSocket | Dashboard plus the PMS mock cashier terminal |
 | Tunnel | ngrok / Cloudflare Tunnel | Only if the webhook path is chosen for Spectrum |
 
 ## 14. Trust & Safety Model

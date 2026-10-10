@@ -59,7 +59,7 @@ async def live(ws: WebSocket):
 
 ### INF-03 | T+1 to T+3 | PBM Sim: switch, decision engine, seed
 
-A separate service (own process, own datastore, port 8100). Deterministic.
+A separate service (own process, own datastore, port 8100). Deterministic. The switch accepts NCPDP-shaped B1/B2/B3 JSON and returns an NCPDP-shaped response (DESIGN.md section 5.3).
 
 ```python
 def adjudicate(claim) -> Reimbursement:
@@ -81,7 +81,7 @@ async def settle_recovery(claim, delta, fee_pct=0.25):
                           amount=round(delta * fee_pct, 2))
 ```
 
-**Done when:** accounts exist (pharmacy, three PBMs, platform, patients), a test remittance moves a real balance, and the fee transfer posts.
+**Done when:** accounts exist (pharmacy, three PBMs, platform, patients), a test remittance moves a real balance, the fee transfer posts, and each deposit has an 835-style record in `remittances`.
 
 ### INF-05 | T+4 to T+6 | Orchestrator + deadline clock
 
@@ -106,11 +106,13 @@ def decide(spec, evidence) -> Decision:
 
 ## P2: Research, Agents, Channels & Messaging
 
-### RES-01 | T+0 to T+3 | PBM appeal procedure research
+### RES-01 | T+0 to T+3 | PBM appeal procedure and NCPDP field research
 
 Pull the public MAC appeal procedures for CVS Caremark, Express Scripts, and OptumRx from provider manuals and PBM pages. For each: submission channel(s), required fields, attachments, appeal window, response SLA. Write the result into `specs` with the source URL and a version.
 
-**Done when:** three versioned specs exist with cited sources, and a note records which channel assignment in DESIGN.md section 8.1 was kept or changed.
+Also pull public payer sheets to verify the NCPDP D.0 field IDs and response fields used in DESIGN.md section 5.3, and the 835 adjustment fields used in section 5.4.
+
+**Done when:** three versioned specs exist with cited sources, the NCPDP and 835 field lists in DESIGN.md are corrected against payer sheets, and a note records which channel assignment in DESIGN.md section 8.1 was kept or changed.
 
 ### AGT-01 | T+1 to T+3 | Adjudication Watcher
 
@@ -188,11 +190,11 @@ Structure over polish. Panels rendering live data.
 
 **Done when:** all panels receive and render events from `/ws/live`.
 
-### UI-02 | T+5 to T+7 | Cashier terminal
+### UI-02 | T+5 to T+7 | PMS mock and cashier terminal
 
-Do not cut this one. Patient queue, pay, adjudication result. This panel makes the project read as a payments company rather than an appeals tool.
+Do not cut this one. A dispensing screen that submits an NCPDP-shaped B1 claim and renders the response and a resolved badge. This panel makes the project read as a payments company rather than an appeals tool.
 
-**Done when:** a test claim flows through the terminal end to end and renders a resolved badge.
+**Done when:** a test claim flows through the PMS mock to the PBM Sim switch end to end, the NCPDP-shaped response renders, and a resolved or in-flight badge shows.
 
 ### UI-03 | T+7 to T+9 | Recovery feed, pipeline board, ledger panel
 
