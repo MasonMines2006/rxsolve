@@ -72,6 +72,10 @@ TypeScript on Bun (one workspace monorepo), MongoDB Atlas (in-memory fallback), 
 - If they say yes, set `COORDINATOR_BOX` to their box and run `client.py subscribe` (and `join` first if no token is saved). Agents may use the password: take it from the user or from `COORDINATOR_PASSWORD` in the gitignored `.env`.
 - The password is never written to a committed file, a commit message, or a coordinator message.
 - Never assume the box from the machine; the answer is always asked, even if the previous session used the same one.
+- The relay exists so teammates' agents coordinate and do not step on each other. Send big updates through it (a feature landing, a phase handoff, a blocker, a stub going in or out).
+- Send every shared contract change (`DESIGN.md` section 5.3 shapes, `/ws/live` events) through the relay when it is made, in addition to logging it in `DECISIONS.md`.
+- Send to the box of whoever owns the affected phase (P1 backend/ledger, P2 agents/messaging, P3 dashboard), and to all boxes for cross-cutting changes.
+- When you have a question another teammate's agent could answer (contracts, ownership, status, intent), ask it over the relay first. Only ask the user directly when no other agent can answer.
 
 ## Conventions
 
