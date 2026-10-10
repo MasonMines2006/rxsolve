@@ -675,7 +675,7 @@ Rules:
 | Agent runtime | `apps/api`, `Bun.serve` | Single service, async loop, WebSocket to dashboard at `/ws/live` |
 | PBM Sim | `apps/pbm-sim`, `Bun.serve` + simple HTML | Separate process and in-memory datastore; switch, dev door, portal, inbox, fax line |
 | Browser agent | Playwright driven by the agent model | Fixed field map; scripted fallback if it flakes |
-| Agent model | Claude `claude-opus-5-5` via `@anthropic-ai/sdk`, key in `AGENT_API_KEY` | Invoked on MARGINAL, evidence extraction, negotiation, portal/fax reading (`apps/api/src/agents/llm.ts`) |
+| Agent model | Google Gemini `gemini-3.8-flash` (override with `AGENT_MODEL`) via `@google/genai`, key in `AGENT_API_KEY` | Invoked on MARGINAL, evidence extraction, negotiation, portal/fax reading (`apps/api/src/agents/llm.ts`) |
 | Messaging | Photon Spectrum SDK (`spectrum-ts`), in-process in the API | `PHOTON_PROJECT_ID`/`PHOTON_PROJECT_SECRET`; cloud iMessage for the pharmacist; WhatsApp Business to the wholesaler. The SDK's `app.messages` loop receives, so no public URL is needed. |
 | Email | Mock mailbox inside PBM Sim | Optional: a hosted inbound/outbound email service if time allows |
 | Fax | Mocked fax line inside PBM Sim | Bandwidth offers T.38 SIP trunking but no fax API, so it would need self-hosted fax software. A real fax API provider (e.g. Telnyx Programmable Fax) is the upgrade path, not required. |

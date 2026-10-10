@@ -9,7 +9,7 @@ Three people, self-assigned. The only hard requirement is that P1 owns the money
 | Phase | Ownership | Stack |
 |---|---|---|
 | P1 | Infrastructure, PBM Sim, Ledger, Orchestrator, deadline clock | TypeScript/Bun, TigerData, Nessie (`apps/api` spine, `apps/pbm-sim`) |
-| P2 | Research, agents, channel adapters, Spectrum notifier; ElevenLabs voice (stretch) | TypeScript/Bun, Playwright, spectrum-ts, Claude via AGENT_API_KEY (`apps/api/src/agents`, `adapters`, `messaging`) |
+| P2 | Research, agents, channel adapters, Spectrum notifier; ElevenLabs voice (stretch) | TypeScript/Bun, Playwright, spectrum-ts, Gemini via AGENT_API_KEY (`apps/api/src/agents`, `adapters`, `messaging`) |
 | P3 | Dashboard, seeding, demo rehearsal, submission assets | Next.js, WebSocket (`apps/dashboard`) |
 
 A walking skeleton is in place: `bun test` and `bun seed` already run the whole demo path on local doubles (direct adapter, local ledger, in-memory db, dashboard phone mock). Each ticket replaces a double with the real thing behind the same interface, so no phase waits on another.
@@ -60,7 +60,7 @@ Never let a dead dependency halt the demo path.
 One `.env` at the repo root, read by every app. The full annotated list is `.env.example`; empty values fall back to local doubles.
 
 ```bash
-AGENT_API_KEY=...             # Claude
+AGENT_API_KEY=...             # Google Gemini
 DATABASE_URL=postgres://...    # TigerData; empty -> in-memory
 LEDGER_BACKEND=local          # local | nessie
 NESSIE_KEY=...                # classic API: key as ?key= query param

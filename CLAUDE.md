@@ -15,7 +15,7 @@ Design lives in `docs/`. These are living files; see "Living docs" below.
 
 ## Stack
 
-TypeScript on Bun (one workspace monorepo), TigerData (Postgres + TimescaleDB, in-memory fallback), Capital One Nessie (ledger), Photon Spectrum (`spectrum-ts`, in-process) for iMessage/WhatsApp, ElevenLabs STT/TTS (stretch only), Next.js + WebSocket dashboard, Claude (`claude-opus-5-5`) as the agent model.
+TypeScript on Bun (one workspace monorepo), TigerData (Postgres + TimescaleDB, in-memory fallback), Capital One Nessie (ledger), Photon Spectrum (`spectrum-ts`, in-process) for iMessage/WhatsApp, ElevenLabs STT/TTS (stretch only), Next.js + WebSocket dashboard, Google Gemini (`gemini-3.8-flash`, `@google/genai`) as the agent model.
 
 | Path | Owner |
 |---|---|
