@@ -7,7 +7,7 @@ echo "--- Nessie (classic) ---"
 curl -s -o /dev/null -w "%{http_code}\n" "http://api.nessieisreal.com/customers?key=${NESSIE_KEY:-}"
 echo "    401/404 => try v2 with header auth against /v2/accounts"
 
-echo "--- ElevenLabs TTS ---"
+echo "--- ElevenLabs TTS (stretch, optional) ---"
 mkdir -p out
 curl -s -o out/probe.mp3 -w "%{http_code}\n" -X POST "https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID:-}" \
   -H "xi-api-key: ${ELEVENLABS_API_KEY:-}" -H "Content-Type: application/json" \

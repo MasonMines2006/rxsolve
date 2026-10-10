@@ -23,8 +23,9 @@ Update this as work lands. Mark a ticket done when its "Done when" in `TICKETS.m
 | AGT-04 | P2 | todo | `EmailAdapter` stub |
 | AGT-05 | P2 | todo | `FaxAdapter` stub |
 | AGT-06 | P2 | scaffolded | Negotiation loop works through the direct adapter; wholesaler WhatsApp is stubbed |
-| AGT-07 | P2 | scaffolded | Digest + exception pings + TTS + Spectrum iMessage send/receive written; untested against a real phone; reply commands TODO |
+| AGT-07 | P2 | scaffolded | Digest + exception pings + Spectrum iMessage send/receive written; Spectrum connects with the project creds; reply commands TODO |
 | AGT-08 | P2 | todo | Stretch: phone negotiator |
+| AGT-09 | P2 | scaffolded | Stretch: digest voice recap; `voice.ts` written, no-ops without a key |
 | UI-01 | P3 | scaffolded | Shell, `/ws/live` hook, state reducer, panel stubs, theme tokens |
 | UI-02 | P3 | scaffolded | Cashier submits a B1 through the switch and shows the badge; dispensing-screen UI TODO |
 | UI-03 | P3 | scaffolded | Feed, pipeline, ledger render live data plainly |
@@ -40,7 +41,7 @@ Update this as work lands. Mark a ticket done when its "Done when" in `TICKETS.m
 | Nessie | yes (until INF-04) | `LEDGER_BACKEND=local` in-memory double; confirm classic vs v2 at INF-01 |
 | Spectrum iMessage | no (needs creds) | Live when `PHOTON_PROJECT_ID`/`SECRET` are set; shared-plan lines only reach registered project users |
 | Spectrum WhatsApp (wholesaler) | yes | Wholesaler replies instantly in the channel viewer; needs WhatsApp Business setup in Photon |
-| ElevenLabs | no (needs key) | Digest is sent without audio when the key is missing |
+| ElevenLabs | stretch | Not on the core demo path; digest is text-only without a key |
 | MongoDB Atlas | yes (until `MONGO_URI`) | In-memory store |
 | PBM portal / email / fax | yes (by design) | PBM Sim mocks modeled on public procedures; agents use the `/dev` door until the doors and adapters land |
 | Fax transport | yes (by design) | Mock fax line; no real fax provider |

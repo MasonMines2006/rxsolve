@@ -1,5 +1,5 @@
 /**
- * ElevenLabs TTS for the digest voice recap (AGT-07). Owner: P2.
+ * ElevenLabs TTS for the digest voice recap (AGT-09, stretch). Owner: P2.
  * Writes the mp3 under out/audio/ (served at /audio/...) and returns bytes + URL, or null when
  * ElevenLabs is not configured or fails (kill-switch: drop the recap, keep the text).
  */

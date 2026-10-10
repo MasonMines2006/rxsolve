@@ -8,7 +8,7 @@ HackNC, MLH Sponsor Challenges, v1.3. October 10, 2026. 24-hour event, 12-hour b
 |---|---|
 | Photon Spectrum | Pharmacist channel (iMessage digest and exceptions); WhatsApp/SMS to wholesaler |
 | Capital One Nessie | Ledger: remittance deposits and fee transfers |
-| ElevenLabs | Voice recap in the digest; phone negotiation with the PBM (stretch) |
+| ElevenLabs (stretch) | Voice recap in the digest; phone negotiation with the PBM. Both are stretch goals, built only after the core demo path is green |
 | Frutiger Aero track | Three-way theme switcher on the dashboard: dark, light, and Frutiger Aero |
 
 Related docs: [BUILD_PLAN.md](BUILD_PLAN.md), [TICKETS.md](TICKETS.md), [DEMO.md](DEMO.md), [DECISIONS.md](DECISIONS.md), [STATUS.md](STATUS.md).
@@ -61,13 +61,13 @@ The product is channel-agnostic: one detection and evidence core, one adapter pe
 - Wholesaler document requests over WhatsApp/SMS
 - Deadline clock with state-regulator escalation path
 - Nessie settlement: PBM remittance deposit plus contingency fee transfer, backed by an 835-style remittance record
-- ElevenLabs voice recap inside the digest
 - Dashboard plus cashier terminal, with a dark / light / Frutiger Aero theme switcher
 - 60-claim seeded history (~18 underwater), spread across the three PBM personas
 - Abandonment logging with reasons, reported honestly
 
 ### 2.2 Stretch
 
+- ElevenLabs voice recap inside the digest
 - Phone: the agent calls the PBM and negotiates a disputed denial (ElevenLabs STT/TTS loop)
 
 ### 2.3 Out (and it stays out)
@@ -92,7 +92,7 @@ The product is channel-agnostic: one detection and evidence core, one adapter pe
 | Evidence Builder | P2 | Runs only on UNDERWATER. Retrieves the state statute, assembles the invoice PDF, scores completeness against the target PBM's required-field list. |
 | Filing & Negotiation | P2 | **Filing** (deterministic): pick the PBM's channel adapter, fill its spec, submit. **Negotiation** (agentic): on denial, diagnose and choose remediate, escalate, or abandon. |
 | Channel Adapters | P2 | One per PBM door: `PortalAdapter` (browser agent), `EmailAdapter`, `FaxAdapter`, `PhoneAdapter` (stretch). Common interface (see 7.3). |
-| Pharmacist Notifier | P2 | Builds the daily digest and exception pings; reads replies. Spectrum iMessage. Voice recap via ElevenLabs. |
+| Pharmacist Notifier | P2 | Builds the daily digest and exception pings; reads replies. Spectrum iMessage. Voice recap via ElevenLabs (stretch). |
 | Wholesaler Contact | P2 | WhatsApp/SMS document requests for missing attestations and invoices. |
 | PBM Sim | P1 | Standalone service. One deterministic decision engine behind three front doors (portal, email inbox, fax line) plus a phone rep (stretch). Three personas modeled on public PBM appeal procedures. |
 | Nessie Ledger | P1 | Pharmacy, PBM, platform, and patient accounts as real ledger entities. |
@@ -140,7 +140,7 @@ PBM Sim denies -> Negotiation -> Wholesaler   -> Adapter refiles -> PBM Sim appr
 (missing field)   diagnoses      WhatsApp reply   same channel       remittance posted
       |
       v
-Nessie deposit + fee -> Digest to pharmacist -> Voice recap in digest
+Nessie deposit + fee -> Digest to pharmacist (-> voice recap, stretch)
 ```
 
 1. PMS mock submits an NCPDP-shaped B1 claim (NDC, quantity, days supply, date of service, submitted cost)
@@ -152,7 +152,7 @@ Nessie deposit + fee -> Digest to pharmacist -> Voice recap in digest
 7. Negotiation diagnoses the missing field, requests it from the wholesaler over WhatsApp, receives it, refiles through the same channel
 8. PBM Sim approves; remittance adjustment posts
 9. Ledger: deposit PBM to pharmacy $6.40; fee pharmacy to platform $1.60
-10. Digest to pharmacist reports the recovery; the voice recap plays in-thread
+10. Digest to pharmacist reports the recovery (stretch: a voice recap plays in-thread)
 11. Dashboard updates live; deadline clock satisfied
 
 ### 5.2 End-to-end data flow
@@ -467,7 +467,7 @@ async def send_digest(pharmacy_id: str, day: date) -> None:
         f"Filed {s.filed}, {s.pending} pending, recovered ${s.recovered}. "
         f"This week: ${s.week_recovered}. Reply DETAILS or PAUSE."
     )
-    audio = await elevenlabs.tts(text, voice=PHARMACIST_VOICE)
+    audio = await elevenlabs.tts(text, voice=PHARMACIST_VOICE)   # stretch (AGT-09); None when not configured
     await spectrum.send(channel="imessage", text=text, voice=audio)
 ```
 
@@ -647,7 +647,7 @@ Rules:
 | Messaging | Photon Spectrum SDK (`spectrum-ts`), in-process in the API | `PHOTON_PROJECT_ID`/`PHOTON_PROJECT_SECRET`; cloud iMessage for the pharmacist; WhatsApp Business to the wholesaler. The SDK's `app.messages` loop receives, so no public URL is needed. |
 | Email | Mock mailbox inside PBM Sim | Optional: a hosted inbound/outbound email service if time allows |
 | Fax | Mocked fax line inside PBM Sim | Bandwidth offers T.38 SIP trunking but no fax API, so it would need self-hosted fax software. A real fax API provider (e.g. Telnyx Programmable Fax) is the upgrade path, not required. |
-| Voice | ElevenLabs STT + TTS | Self-implemented loop |
+| Voice (stretch) | ElevenLabs STT + TTS | Self-implemented loop; digest recap (AGT-09) and phone negotiator (AGT-08) only |
 | Ledger | Capital One Nessie REST | Version probe at T+0 |
 | Database | MongoDB Atlas free tier (`mongodb` driver) | In-memory store when `MONGO_URI` is empty. Seeded with 60 claims, ~18 underwater. |
 | Frontend | `apps/dashboard`, Next.js + WebSocket | Dashboard plus the PMS mock cashier terminal; CSS-variable theming (12.1). Proxies `/api` and `/sim` so the browser needs no CORS. |

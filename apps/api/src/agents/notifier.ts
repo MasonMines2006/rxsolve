@@ -27,7 +27,7 @@ export async function sendDigest(pharmacyId: string): Promise<ChannelMessage> {
   const text =
     `RxSolve ${day}: found ${s.found} underpaid claims ($${s.found_amt.toFixed(2)}). ` +
     `Filed ${s.filed}, ${s.pending} pending, recovered $${s.recovered.toFixed(2)}. Reply DETAILS or PAUSE.`;
-  const audio = await tts(text); // null if ElevenLabs is not configured
+  const audio = await tts(text); // stretch (AGT-09): null if ElevenLabs is not configured
   return send("imessage", config.pharmacistPhone, text, { counterparty: "pharmacist", audio });
 }
 

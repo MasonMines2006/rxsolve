@@ -26,7 +26,7 @@ Or one process per terminal: `bun api`, `bun sim`, `bun dash`. Then `bun seed RX
 |---|---|---|
 | `packages/contracts/` | shared | Zod schemas and types for DESIGN §5.3 and every `/ws/live` event. Changing one means a line in `docs/DECISIONS.md`. |
 | `apps/api/src/` (orchestrator, intake, ledger/, db, events, routes/core) | P1 | Agent runtime spine, Nessie ledger, deadline clock, standing-authorization gate |
-| `apps/api/src/agents/`, `adapters/`, `messaging/`, `voice.ts`, `routes/messaging.ts` | P2 | Watcher, Evidence Builder, negotiation, channel adapters, Spectrum, ElevenLabs |
+| `apps/api/src/agents/`, `adapters/`, `messaging/`, `voice.ts`, `routes/messaging.ts` | P2 | Watcher, Evidence Builder, negotiation, channel adapters, Spectrum, ElevenLabs (stretch) |
 | `apps/api/src/fixtures/` | P1 / P2 | Reference data; per-file owners in its README |
 | `apps/pbm-sim/` | P1 | Standalone mock PBMs: claim switch, decision engine, portal/inbox/fax doors. Imports nothing from `@rxsolve/*`. |
 | `apps/dashboard/` | P3 | Next.js dashboard, PMS mock cashier terminal, pharmacist phone, themes |
@@ -51,7 +51,7 @@ cashier (dashboard) --B1--> pbm-sim /switch/claim --tee--> api /api/feed/claim
 | Nessie | Local ledger double until INF-04 (`LEDGER_BACKEND=nessie`) |
 | Photon Spectrum (iMessage) | Live when `PHOTON_PROJECT_ID`/`PHOTON_PROJECT_SECRET` are set; otherwise the dashboard phone mock shows every message |
 | WhatsApp to wholesaler | Stubbed: the wholesaler replies instantly in the channel viewer |
-| ElevenLabs | Live when keys are set; otherwise the digest goes without the voice recap |
+| ElevenLabs (stretch) | Voice recap (AGT-09) and phone negotiator (AGT-08) are stretch goals; without keys the digest is text only |
 | Real-PBM adapters | `ADAPTER_MODE=direct` files through the PBM Sim's JSON dev door until the portal/email/fax adapters land |
 
 Current status of each stub is in [docs/STATUS.md](docs/STATUS.md).

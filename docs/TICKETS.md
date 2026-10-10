@@ -5,21 +5,21 @@ Part of the technical design. See [DESIGN.md](DESIGN.md) for architecture and [B
 | Phase | Tickets |
 |---|---|
 | P1 | INF-01 to INF-06 |
-| P2 | RES-01, AGT-01 to AGT-07 |
+| P2 | RES-01, AGT-01 to AGT-07; stretch AGT-08, AGT-09 |
 | P3 | UI-01 to UI-07 |
 
 ## P1: Infrastructure, PBM Sim & Ledger
 
-### INF-01 | T+0 to T+1 | Sponsor key sprint (all three)
+### INF-01 | T+0 to T+1 | Sponsor key sprint (Nessie, Photon)
 
-Get all three sponsor APIs answering before anything else is built.
+Get the core sponsor APIs answering before anything else is built. ElevenLabs is stretch: probe it only if a key is already in hand.
 
 ```bash
 # --- Nessie: probe the version FIRST ---
 curl "https://api.nessieisreal.com/customers?key=$NESSIE_KEY"
 # 401 or 404 => you are on v2. Switch to header auth against /v2/accounts
 
-# --- ElevenLabs: one TTS call ---
+# --- ElevenLabs (stretch, optional): one TTS call ---
 curl -X POST "https://api.elevenlabs.io/v1/text-to-speech/$VOICE_ID" \
   -H "xi-api-key: $ELEVENLABS_API_KEY" \
   -H "Content-Type: application/json" \
@@ -33,7 +33,7 @@ curl -X POST "https://api.elevenlabs.io/v1/text-to-speech/$VOICE_ID" \
 
 `bun probe` (scripts/probe-sponsors.sh) runs the Nessie and ElevenLabs checks.
 
-**Done when:** all three return success. Group chat has every key, the confirmed Nessie version, and the Photon project id.
+**Done when:** Nessie and Photon return success. Group chat has every key, the confirmed Nessie version, and the Photon project id.
 
 ### INF-02 | T+1 to T+2 | Bun API service, MongoDB, WebSocket
 
@@ -155,17 +155,23 @@ if denial.reason == "missing_field":
 
 **Done when:** the full deny, remediate, refile, approve sequence runs live on the portal channel without intervention, and at least one other channel completes the same loop.
 
-### AGT-07 | T+9 to T+10 | Pharmacist notifier, digest, voice recap
+### AGT-07 | T+9 to T+10 | Pharmacist notifier and digest
 
-Spectrum iMessage: daily digest (manually triggerable for the demo), exception pings, standing-authorization policy, and replies like APPROVE, DETAILS, PAUSE. ElevenLabs TTS recap attached to the digest.
+Spectrum iMessage: daily digest (manually triggerable for the demo), exception pings, standing-authorization policy, and replies like APPROVE, DETAILS, PAUSE.
 
-**Done when:** a digest built from ledger data lands on a real phone with a voice recap, a reply changes state, and an out-of-policy claim produces an exception ping.
+**Done when:** a digest built from ledger data lands on a real phone, a reply changes state, and an out-of-policy claim produces an exception ping.
 
 ### AGT-08 | Stretch | Phone negotiator
 
 ElevenLabs STT/TTS loop. Build against a simulated rep over WebSocket audio first, real telephony second. Record a backup call.
 
 **Done when:** on a disputed denial the agent calls the rep, cites the statute, and the deterministic rule flips the decision to APPROVED.
+
+### AGT-09 | Stretch | Digest voice recap
+
+ElevenLabs TTS of the digest text, attached to the iMessage digest as a voice note and playable in the dashboard phone mock. Scaffolded in `apps/api/src/voice.ts`; it no-ops without `ELEVENLABS_API_KEY`, so the digest never depends on it. Start only after AGT-07 is done and the demo gate is green.
+
+**Done when:** the digest arrives on a real phone with a voice note of the same numbers as the text.
 
 ## P3: Dashboard & Demo
 
