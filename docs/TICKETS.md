@@ -5,14 +5,14 @@ Part of the technical design. See [DESIGN.md](DESIGN.md) for architecture and [B
 | Phase | Tickets |
 |---|---|
 | P1 | INF-01 to INF-06 |
-| P2 | AGT-01 to AGT-05 |
+| P2 | RES-01, AGT-01 to AGT-07 |
 | P3 | UI-01 to UI-06 |
 
-## P1: Infrastructure & Ledger
+## P1: Infrastructure, PBM Sim & Ledger
 
 ### INF-01 | T+0 to T+1 | Sponsor key sprint (all three)
 
-Get all three sponsor APIs answering before anything else is built. This is the foundation; nobody can test until it is green.
+Get all three sponsor APIs answering before anything else is built.
 
 ```bash
 # --- Nessie: probe the version FIRST ---
@@ -33,8 +33,6 @@ curl -X POST "https://api.elevenlabs.io/v1/text-to-speech/$VOICE_ID" \
 **Done when:** all three return success. Group chat has every key, the confirmed Nessie version, and the Spectrum workspace URL.
 
 ### INF-02 | T+1 to T+2 | FastAPI service, MongoDB, WebSocket
-
-You are everyone's foundation.
 
 ```python
 from fastapi import FastAPI, WebSocket
@@ -59,70 +57,60 @@ async def live(ws: WebSocket):
 
 **Done when:** `curl localhost:8000/api/health` returns 200, and a WebSocket client receives events.
 
-### INF-03 | T+2 to T+3 | Mock PBM adjudication engine + seed
+### INF-03 | T+1 to T+3 | PBM Sim: switch, decision engine, seed
 
-Deterministic.
+A separate service (own process, own datastore, port 8100). Deterministic.
 
 ```python
 def adjudicate(claim) -> Reimbursement:
-    price = MAC_LIST.get(claim.ndc, claim.paid_amount)
+    price = MAC_LIST[claim.pbm].get(claim.ndc, claim.paid_amount)
     copay = COPAY_SCHEDULE[claim.plan](price)
-    return Reimbursement(
-        paid=round(max(price - copay, 0), 2),
-        pbm=claim.pbm,
-        adjudicated_at=now(),
-    )
+    return Reimbursement(paid=round(max(price - copay, 0), 2), pbm=claim.pbm, adjudicated_at=now())
 ```
 
-Seed 60 claims: ~18 UNDERWATER (MAC below acquisition cost), the remainder CLEAR, and 3 deliberately MARGINAL.
+Seed 60 claims across three personas: ~18 UNDERWATER (MAC below acquisition cost), the remainder CLEAR, and 3 deliberately MARGINAL. Each persona carries a seeded response delay and a partial-evidence threshold.
 
-**Done when:** seeded claims adjudicate on load, the underwater count matches, and every claim has a `fill_date` inside its appeal window.
+**Done when:** seeded claims adjudicate on load, the underwater count matches, every claim has a `fill_date` inside its appeal window, and PBM Sim imports nothing from the agent codebase.
 
 ### INF-04 | T+3 to T+4 | Nessie ledger: accounts and settlement
 
-Real balances.
-
 ```python
 async def settle_recovery(claim, delta, fee_pct=0.25):
-    await nessie.post_bill(from_=claim.pbm_account,
-                           to_=claim.pharmacy_account, amount=delta)
-    await nessie.post_bill(from_=claim.pharmacy_account,
-                           to_=PLATFORM_ACCOUNT,
-                           amount=round(delta * fee_pct, 2))
+    await nessie.transfer(from_=claim.pbm_account, to_=claim.pharmacy_account, amount=delta)
+    await nessie.transfer(from_=claim.pharmacy_account, to_=PLATFORM_ACCOUNT,
+                          amount=round(delta * fee_pct, 2))
 ```
 
-**Done when:** four accounts exist, a test reversal moves a real balance, and the fee transfer posts.
+**Done when:** accounts exist (pharmacy, three PBMs, platform, patients), a test remittance moves a real balance, and the fee transfer posts.
 
 ### INF-05 | T+4 to T+6 | Orchestrator + deadline clock
 
-The demo's spine. Copy the loop from DESIGN.md section 8 exactly.
+The demo's spine. Copy the loop from DESIGN.md section 9, including the standing-authorization gate.
 
-```python
-DEADLINES = {"TN": 7, "default": 30}   # business days, per statute
+**Done when:** a CLEAR claim short-circuits; an UNDERWATER claim walks evidence then file via the PBM's adapter; an out-of-policy claim raises an exception instead of filing; the clock counts down correctly in the dashboard feed.
 
-def deadline_for(state, fill_date):
-    return business_add(fill_date, DEADLINES.get(state, DEADLINES["default"]))
-```
-
-**Done when:** a CLEAR claim short-circuits; an UNDERWATER claim walks evidence then file; the clock counts down correctly in the dashboard feed.
-
-### INF-06 | T+7 to T+9 | Escalation path + concession rules
+### INF-06 | T+7 to T+9 | Per-persona concession rules + escalation path
 
 No model in the loop.
 
 ```python
-def adjudicate_appeal(evidence) -> Decision:
+def decide(spec, evidence) -> Decision:
     if evidence.completeness >= 1.0:
         return Decision("APPROVED")
-    if evidence.completeness >= 0.75:
-        return Decision("DENIED", reason="missing_field",
-                        field=first_missing(evidence))
+    if evidence.completeness >= spec.partial_threshold:
+        return Decision("DENIED", reason="missing_field", field=first_missing(evidence, spec))
     return Decision("DENIED", reason="insufficient_evidence")
 ```
 
-**Done when:** a complete packet wins, a partial packet denies with a specific named field, and escalation files correctly.
+**Done when:** a complete packet wins on each persona, a partial packet denies with a specific named field, one persona denies first and approves on rebuttal, and escalation files correctly.
 
-## P2: Agents & Messaging
+## P2: Research, Agents, Channels & Messaging
+
+### RES-01 | T+0 to T+3 | PBM appeal procedure research
+
+Pull the public MAC appeal procedures for CVS Caremark, Express Scripts, and OptumRx from provider manuals and PBM pages. For each: submission channel(s), required fields, attachments, appeal window, response SLA. Write the result into `specs` with the source URL and a version.
+
+**Done when:** three versioned specs exist with cited sources, and a note records which channel assignment in DESIGN.md section 8.1 was kept or changed.
 
 ### AGT-01 | T+1 to T+3 | Adjudication Watcher
 
@@ -144,98 +132,88 @@ def adjudicate(claim, invoices, nadac, contract):
 
 ### AGT-02 | T+3 to T+5 | Evidence Builder
 
-Fully agentic.
+Fully agentic, shaped by the target PBM's spec.
 
-```python
-statute = await retrieve_statute(claim["state"], topic="mac_appeal")
-text = await extract_entitlement(statute, require="acquisition_cost_floor")
-pdf = render_invoice_line(claim.source_invoice, claim["ndc"])
-```
+**Done when:** a real appeal PDF exists with a correct section citation, a valid attached invoice, and a completeness score computed against that PBM's required fields, for at least three states.
 
-**Done when:** a real appeal PDF exists with a correct section citation and a valid attached invoice for at least three different states.
+### AGT-03 | T+5 to T+7 | Portal adapter + browser agent
 
-### AGT-03 | T+5 to T+7 | Spectrum iMessage integration
+Implement the `ChannelAdapter` interface (DESIGN.md 7.3). A Playwright browser agent fills the PBM Sim portal from a fixed field map, uploads the PDF, and reads the status page. Include a scripted fallback.
 
-Verify the API shape early.
+**Done when:** a claim is filed through the portal and the denial or approval is read back as a `Decision`, with the form fill visible in the channel viewer.
 
-Choose one path and commit. Webhooks need a public HTTPS URL plus signature verification and a tunnel. The SDK loop needs a long-lived process but no public URL. For a 12-hour build the SDK loop is usually lower friction.
+### AGT-04 | T+6 to T+7 | Email adapter
 
-```python
-from spectrum import Spectrum
+Compose the appeal with the PDF attached, send to the PBM Sim inbox, and parse the templated reply.
 
-spectrum = Spectrum(api_key=os.environ["PHOTON_API_KEY"])
+**Done when:** an email appeal produces an approval or a named-field denial, parsed into a `Decision`.
 
-@spectrum.on_message
-async def handle(msg):
-    claim = match_claim_to_thread(msg)
-    return await negotiation_agent.on_denial(claim, parse_denial(msg))
-```
+### AGT-05 | T+7 to T+8 | Fax adapter
 
-Bind the agent to iMessage (primary). Add WhatsApp + SMS for wholesaler remediation; multi-platform depth is exactly what Photon's judging rewards.
+Render a cover sheet plus evidence PDF, post to the fax line, and read the scanned-look reply PDF with vision/OCR.
 
-**Done when:** a message sent from a real phone into the thread produces an agent reply within five seconds.
+**Done when:** a fax appeal returns a `Decision` read from the reply PDF.
 
-### AGT-04 | T+7 to T+9 | Negotiation loop with live remediation
+### AGT-06 | T+7 to T+9 | Negotiation loop with wholesaler remediation
 
-The demo beat.
+The demo beat, working on any channel through the adapter.
 
 ```python
 if denial.reason == "missing_field":
-    doc = await spectrum.request_document(
-        channel="whatsapp",
-        to=claim.wholesaler_contact,
-        ask=denial.field_name,
+    doc = await wholesaler.request_document(
+        channel="whatsapp", to=claim.wholesaler_contact, ask=denial.field_name
     )
-    await refile_in_thread(claim.claim_id, doc)
+    await adapter.reply(denial.ticket, Reply(evidence=await ev.with_document(doc)))
 ```
 
-**Done when:** the full deny, remediate, refile, approve sequence runs live without intervention.
+**Done when:** the full deny, remediate, refile, approve sequence runs live on the portal channel without intervention, and at least one other channel completes the same loop.
 
-### AGT-05 | T+9 to T+10 | ElevenLabs voice agent
+### AGT-07 | T+9 to T+10 | Pharmacist notifier, digest, voice recap
 
-Self-implemented loop. Do not depend on hosted Conversational AI.
+Spectrum iMessage: daily digest (manually triggerable for the demo), exception pings, standing-authorization policy, and replies like APPROVE, DETAILS, PAUSE. ElevenLabs TTS recap attached to the digest.
 
-```python
-audio = await elevenlabs.tts(text, voice=PHARMACIST_VOICE)
-await spectrum.send_voice_message(channel="imessage", audio=audio, text=text)
-```
+**Done when:** a digest built from ledger data lands on a real phone with a voice recap, a reply changes state, and an out-of-policy claim produces an exception ping.
 
-**Done when:** a native voice message lands in the thread on settlement, and the STT leg handles one inbound test call.
+### AGT-08 | Stretch | Phone negotiator
+
+ElevenLabs STT/TTS loop. Build against a simulated rep over WebSocket audio first, real telephony second. Record a backup call.
+
+**Done when:** on a disputed denial the agent calls the rep, cites the statute, and the deterministic rule flips the decision to APPROVED.
 
 ## P3: Dashboard & Demo
 
 ### UI-01 | T+3 to T+5 | Next.js shell + WebSocket client
 
-Structure over polish. Four panels rendering live data. The demo is four minutes.
+Structure over polish. Panels rendering live data.
 
-**Done when:** all four panels receive and render events from `/ws/live`.
+**Done when:** all panels receive and render events from `/ws/live`.
 
 ### UI-02 | T+5 to T+7 | Cashier terminal
 
-Do not cut this one. Patient queue, pay, adjudication result. This panel is what makes the project read as a payments company rather than an appeals tool.
+Do not cut this one. Patient queue, pay, adjudication result. This panel makes the project read as a payments company rather than an appeals tool.
 
 **Done when:** a test claim flows through the terminal end to end and renders a resolved badge.
 
 ### UI-03 | T+7 to T+9 | Recovery feed, pipeline board, ledger panel
 
-Real numbers only. Kanban with visible deadline countdowns. The ledger panel pulls real Nessie balances; every number traced to a real movement.
+Real numbers only. Kanban with deadline countdowns, PBM and channel shown per card.
 
 **Done when:** every dollar shown on screen is reproducible in the Nessie transaction record.
 
-### UI-04 | T+9 to T+10 | Thread viewer
+### UI-04 | T+9 to T+10 | Channel viewer + pharmacist phone
 
-The Photon proof surface. Renders the iMessage conversation per claim as it happens. Judges need to see the agent conversing, not just a status badge.
+Per claim, render the exchange on its channel (portal fill, email, fax, wholesaler chat) as it happens. Render the pharmacist's digest and exceptions as a phone mock.
 
-**Done when:** the thread renders live, message by message, during a full run-through.
+**Done when:** the exchange renders live, step by step, during a full run-through on all three channels.
 
 ### UI-05 | T+10 to T+11 | Demo gate
 
-Go / no-go. Full run-through, twice, timed. Cut everything that is not green.
+Go / no-go. Full run-through, twice, timed. Cut everything not green. Decide on the phone stretch.
 
 **Done when:** two consecutive clean run-throughs with no manual intervention and no placeholder data.
 
 ### UI-06 | T+11 to T+12 | Submission assets
 
-Own the paperwork. README, screenshots, demo recording, and each sponsor-prize checklist verified against that challenge's stated submission requirements. MLH pre-submission form filed before 11:59 PM.
+README, screenshots, demo recording, each sponsor-prize checklist verified. MLH form filed before 11:59 PM.
 
 **Done when:** form submitted, checklist verified per sponsor, recording backed up.
