@@ -126,7 +126,7 @@ Orchestrator updates this table as work lands. Status: `not started`, `in progre
 | AGT-04 | not started | `EmailAdapter` stub |
 | AGT-05 | not started | `FaxAdapter` stub |
 | AGT-06 | not started | Works through the direct adapter; wholesaler WhatsApp stubbed |
-| AGT-07 | not started | Digest and Spectrum send written; reply commands TODO |
+| AGT-07 | in progress | Digest, exception asks, reply commands done and tested offline; "done when" needs a digest on a real phone with Photon creds |
 | AGT-08 | not started | Stretch |
 | AGT-09 | not started | Stretch; `voice.ts` written |
 
