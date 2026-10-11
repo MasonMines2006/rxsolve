@@ -13,7 +13,7 @@ export default function Page() {
     <div className="dashboard-shell">
       <AppHeader live={live} />
       <main className="dashboard-grid" aria-label="Live recovery operations">
-        <div className="dashboard-col">
+        <div className="dashboard-col dashboard-col--fill">
           <ClaimsPanel live={live} />
           <PharmacistPhone />
         </div>

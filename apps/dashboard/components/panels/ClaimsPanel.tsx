@@ -13,7 +13,8 @@ export function ClaimsPanel({ live }: PanelProps) {
   const rows = useMemo(() => buildClaimRows(live), [live]);
 
   return (
-    <Panel id="claims" title="Claims" aside={`${rows.length} from the pharmacy's claim feed`}>
+    <Panel id="claims" title="Claims" aside={`${rows.length} from the pharmacy's claim feed`} className="panel--fill">
+      <div className="claims-wrap">
       <ul className="plain claims" aria-label="Claims">
         {rows.map((r) => {
           const { summary, label } = rowSummary(r, now);
@@ -41,6 +42,7 @@ export function ClaimsPanel({ live }: PanelProps) {
         })}
       </ul>
       {rows.length === 0 && <p className="empty">No claims yet. They appear here as the pharmacy's system bills the PBM.</p>}
+      </div>
     </Panel>
   );
 }

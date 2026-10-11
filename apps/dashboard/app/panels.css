@@ -90,7 +90,9 @@
 }
 .dashboard-col { display: grid; gap: 20px; min-width: 0; align-content: start; }
 @media (min-width: 1100px) {
-  .dashboard-grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+  .dashboard-grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: stretch; }
+  /* The left column matches the right column's height; its claims list takes the slack and scrolls inside. */
+  .dashboard-col--fill { grid-template-rows: minmax(0, 1fr) auto; align-content: stretch; }
 }
 
 /* Header */
@@ -313,7 +315,11 @@ a.attachment:focus-visible { outline: 3px solid var(--focus-ring); outline-offse
 @media (prefers-reduced-motion: reduce) { .agent-banner__dot { animation: none; } }
 
 /* Claims list on the RxSolve home */
-.claims { gap: 6px; max-height: 420px; overflow-y: auto; }
+.claims-wrap { position: relative; flex: 1 1 auto; min-height: 360px; }
+.claims { gap: 6px; position: absolute; inset: 0; overflow-y: auto; margin: 0; padding: 0; align-content: start; }
+.panel--fill { display: flex; flex-direction: column; min-height: 0; }
+.panel--fill > .claims-wrap { flex: 1 1 0; }
+.claims-wrap > .empty { position: absolute; inset: 0; margin: 0; }
 .claim-row { display: grid; grid-template-columns: minmax(130px, 150px) minmax(0, 1fr) auto auto; align-items: center; gap: 4px 10px; padding: 6px 12px; background: var(--surface-2); border: 2px solid transparent; border-radius: var(--radius-sm); }
 .claim-row--quiet { opacity: 0.65; }
 .claim-row .pill { white-space: nowrap; }
