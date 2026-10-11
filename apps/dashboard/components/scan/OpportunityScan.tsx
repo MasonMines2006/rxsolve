@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { PolicySetup } from "@/components/scan/PolicySetup";
 import { Panel } from "@/components/ui/Panel";
 import {
+  buildHandoffExampleCsv,
   EXAMPLE_SCANS,
   remainingScanDelay,
   reviewQueue,
@@ -17,6 +18,7 @@ export function OpportunityScan() {
   const summaryRef = useRef<HTMLElement>(null);
   const [result, setResult] = useState<OpportunityScanResult | null>(null);
   const [sourceName, setSourceName] = useState<string | null>(null);
+  const [scannedCsv, setScannedCsv] = useState(""); // kept so the handoff can send the same file
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [staged, setStaged] = useState(false);
@@ -45,6 +47,7 @@ export function OpportunityScan() {
       if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs));
       setResult(body);
       setSourceName(name);
+      setScannedCsv(csv);
     } catch (cause) {
       setResult(null);
       setSourceName(null);
@@ -59,6 +62,10 @@ export function OpportunityScan() {
     setPending(true);
     setError(null);
     try {
+      if (example.path === null) {
+        await analyze(buildHandoffExampleCsv(new Date()), example.name);
+        return;
+      }
       const response = await fetch(example.path);
       if (!response.ok) throw new Error("The example CSV could not be loaded.");
       await analyze(await response.text(), example.name);
@@ -198,7 +205,7 @@ export function OpportunityScan() {
             </div>
           </Panel>
 
-          {staged && <PolicySetup claims={queue} />}
+          {staged && <PolicySetup claims={queue} csv={scannedCsv} />}
 
           <Panel id="scan-safety" title="How the scan handles your file">
             <div className="scan-safety">

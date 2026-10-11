@@ -37,6 +37,13 @@ export const EXAMPLE_SCANS = [
     description: "A pharmacy export that uses common aliases instead of RxSolve labels.",
     path: "/sample-alternate-export.csv",
   },
+  {
+    id: "handoff",
+    name: "Ready for RxSolve handoff",
+    description: "Recent claims for drugs RxSolve has invoices for. Use it to try Send to RxSolve.",
+    // No file: buildHandoffExampleCsv makes this one fresh so its dates are always in the appeal window.
+    path: null,
+  },
 ] as const;
 
 type StatusTone = "good" | "muted" | "warn" | "bad";
@@ -85,6 +92,9 @@ export type OpportunityScanResult = {
     invoice_number: string | null;
     invoice_date: string | null;
     appeal_deadline: string;
+    quantity: number | null;
+    rx_number: string | null;
+    plan: string | null;
     shortfall: number;
     status: ScanStatus;
     reason: string;
@@ -161,4 +171,51 @@ export function previewPolicy<T extends QueueClaim>(
     needsApprovalTotal: sumShortfall(needsApproval.map((entry) => entry.claim)),
     selectedTotal: sumShortfall(selected),
   };
+}
+
+// --- Handoff to the claim pipeline -------------------------------------------------------------
+// Unlike the preview above, a handoff is real: the API stores the claims, saves the limit as the
+// pharmacy's policy, and the pipeline may file appeals.
+
+/** Same cap as the API (apps/api/src/scan-handoff.ts). */
+export const MAX_HANDOFF_CLAIMS = 25;
+
+export type HandoffResult = {
+  policy: { auto_file_max: number } | null;
+  accepted: Array<{ claim_id: string; scan_shortfall: number; rxsolve_shortfall: number }>;
+  rejected: Array<{ claim_id: string; reason: string }>;
+};
+
+/** Why the send button is disabled, or null when it can be pressed. */
+export function handoffBlocker(input: { selectedCount: number; autoFileMax: number | null; confirmed: boolean }): string | null {
+  if (input.selectedCount === 0) return "Select at least one claim.";
+  if (input.selectedCount > MAX_HANDOFF_CLAIMS) return `Send ${MAX_HANDOFF_CLAIMS} claims or fewer at a time.`;
+  if (input.autoFileMax === null) return "Enter a valid dollar limit.";
+  if (!input.confirmed) return "Tick the box to confirm.";
+  return null;
+}
+
+const DAY_MS = 86_400_000;
+const isoDay = (date: Date, offsetDays: number) => new Date(date.getTime() + offsetDays * DAY_MS).toISOString().slice(0, 10);
+
+/**
+ * Example file for trying the handoff. The drugs, quantities and costs match RxSolve's invoice
+ * data (apps/api/src/fixtures/invoices.json), so the scan's estimate and the pipeline agree.
+ * HAND-005 is a drug RxSolve has no invoice for, to show a rejection.
+ */
+export function buildHandoffExampleCsv(today: Date): string {
+  const fill = isoDay(today, -1);
+  const deadline = isoDay(today, 10);
+  const rows = [
+    ["HAND-001", "00093715698", "Atorvastatin 20 mg", "PBM_EMAIL", "NC", "4.00", "9.90", "INV-55121", "2026-10-01", "90", "7001001", "NC Commercial"],
+    ["HAND-002", "68180051301", "Lisinopril 10 mg", "PBM_FAX", "GA", "4.80", "9.00", "INV-55122", "2026-10-02", "60", "7001002", "GA Medicaid MCO"],
+    ["HAND-003", "00781107210", "Amlodipine 5 mg", "PBM_PORTAL", "NC", "20.00", "150.00", "INV-55123", "2026-10-02", "500", "7001003", "NC Commercial"],
+    ["HAND-004", "00378001801", "Metformin HCl 500 mg", "PBM_PORTAL", "TN", "6.40", "12.80", "INV-55120", "2026-10-01", "1000", "7001004", "TN Part D"],
+    ["HAND-005", "00054429931", "Omeprazole 20 mg", "PBM_FAX", "NC", "2.80", "6.00", "INV-90001", "2026-10-02", "30", "7001005", "NC Commercial"],
+    ["HAND-006", "00093715698", "Atorvastatin 20 mg", "PBM_EMAIL", "NC", "0.80", "1.10", "INV-55121", "2026-10-01", "10", "7001006", "NC Commercial"],
+  ];
+  const header = "Claim ID,Fill Date,NDC,Drug,PBM,State,Total Paid,Acquisition Cost,Invoice Number,Invoice Date,Appeal Deadline,Quantity,Rx Number,Plan";
+  const lines = rows.map(([id, ndc, drug, pbm, state, paid, cost, invoiceNumber, invoiceDate, quantity, rx, plan]) =>
+    [id, fill, ndc, drug, pbm, state, paid, cost, invoiceNumber, invoiceDate, deadline, quantity, rx, plan].join(","));
+  return [header, ...lines].join("\n");
 }

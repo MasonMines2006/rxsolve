@@ -273,6 +273,14 @@ a.btn--ghost { border-color: var(--border); }
 .scan-table--queue { min-width: 760px; }
 .scan-table--queue input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); }
 .scan-policy-note { margin: 0; color: var(--text-muted); font-weight: 600; }
+.scan-handoff { display: grid; gap: 12px; padding: 14px; background: var(--inset-surface); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.scan-handoff__confirm { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+.scan-handoff__confirm input { flex: none; width: 20px; height: 20px; accent-color: var(--accent); }
+.scan-handoff__action { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.scan-handoff__action small { color: var(--text-muted); }
+.scan-handoff__result { display: grid; gap: 8px; justify-items: start; }
+.scan-handoff__result ul { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.scan-handoff__result li { display: flex; flex-wrap: wrap; gap: 10px; }
 .scan-safety { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
 .scan-safety div { display: grid; gap: 4px; padding: 12px; background: var(--inset-surface); border-radius: var(--radius-sm); }
 .scan-safety b { color: var(--accent); }

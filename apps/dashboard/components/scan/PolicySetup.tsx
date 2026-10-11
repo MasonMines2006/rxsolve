@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ScanHandoff } from "@/components/scan/ScanHandoff";
 import { Panel } from "@/components/ui/Panel";
 import {
   DEFAULT_AUTO_FILE_MAX,
@@ -20,9 +21,10 @@ type PolicySetupClaim = Pick<ScanClaim, "claim_id" | "drug" | "pbm" | "status" |
 
 /**
  * Review queue and policy preview for a finished scan. The pharmacist picks claims and a dollar
- * limit, and sees which claims would file on their own and which would wait for approval.
+ * limit, sees which claims would file on their own and which would wait for approval, and can
+ * then send the selection to the claim pipeline. `csv` is the scanned file's text.
  */
-export function PolicySetup({ claims }: { claims: PolicySetupClaim[] }) {
+export function PolicySetup({ claims, csv }: { claims: PolicySetupClaim[]; csv: string }) {
   const queue = reviewQueue(claims);
   // Ready claims start selected. Needs-review claims are opt-in because a person has to look at them.
   const [selectedIds, setSelectedIds] = useState<string[]>(() => readyClaimIds(queue));
@@ -94,7 +96,8 @@ export function PolicySetup({ claims }: { claims: PolicySetupClaim[] }) {
           <span><b>{usd(preview.selectedTotal)}</b> selected in total</span>
         </div>
       )}
-      <p className="scan-policy-note">Nothing is filed from this preview. It shows how your limit would sort these claims.</p>
+      <p className="scan-policy-note">Nothing is filed until you send claims to RxSolve. RxSolve then prices each claim from its own invoice records.</p>
+      <ScanHandoff csv={csv} selectedIds={selectedIds} autoFileMax={autoFileMax} />
     </Panel>
   );
 }
