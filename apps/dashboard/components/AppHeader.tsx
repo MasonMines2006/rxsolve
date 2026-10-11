@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Hero } from "@/components/Hero";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import type { PanelProps } from "@/components/panels/types";
@@ -24,6 +25,7 @@ export function AppHeader({ live }: PanelProps) {
       </div>
       <Hero live={live} />
       <div className="app-header__controls">
+        <Link className="btn btn--ghost btn--sm" href="/scan">Scan historical claims</Link>
         <p className={`live-status ${live.connected ? "live-status--on" : "live-status--off"}`} role="status" aria-live="polite">
           <span className="live-status__dot" aria-hidden="true" />
           {live.connected ? "Live stream connected" : "Connecting to live stream…"}

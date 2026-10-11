@@ -20,6 +20,12 @@ Or one process per terminal: `bun api`, `bun sim`, `bun dash`. Then `bun seed RX
 
 `bun test` runs the demo path end to end over real HTTP. `bun run typecheck` checks every workspace.
 
+## Try the recovery opportunity scan
+
+Open [http://localhost:3000/scan](http://localhost:3000/scan) and choose **Analyze example claims**. The bundled synthetic CSV shows the complete intake story: RxSolve measures historical shortfalls, separates ready claims from missing evidence, expired deadlines, small-dollar review, and fairly paid claims, then stages only the ready claims for policy review. Staging does not persist the upload or file an appeal.
+
+For unfamiliar CSV formats, a configured model may map unknown column names to RxSolve's fixed eleven-field vocabulary. Only header names are sent to the model. CSV rows, dollar amounts, evidence checks, deadlines, classifications, and totals remain deterministic and are validated again after mapping.
+
 ## Layout and ownership
 
 | Path | Owner | What |
@@ -54,6 +60,7 @@ cashier (dashboard) --B1--> pbm-sim /switch/claim --tee--> api /api/feed/claim
 | WhatsApp / SMS to wholesaler | Stubbed unless Photon is connected with `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET` and `WHOLESALER_CONTACT`: the wholesaler replies instantly in the channel viewer (`WHOLESALER_STUB=silent` makes it stay quiet to show the abandon path) |
 | ElevenLabs (stretch) | Voice recap (AGT-09) and phone negotiator (AGT-08) are stretch goals; without keys the digest is text only; with a key the digest text is followed by a voice note (`channel.message` with `audio_url`). The phone negotiator runs offline on a stub text codec against the simulated rep (`PHONE_MODE=sim`); `PHONE_REP_URL` points it at a real audio line |
 | PBM adapters | `ADAPTER_MODE=real` uses the scripted portal, email, and fax adapters over HTTP to the local PBM Sim doors; `ADAPTER_MODE=direct` keeps the JSON dev-door fallback. Real PBM services remain mocked by design |
+| Opportunity scan AI | Optional and bounded: when `AGENT_API_KEY` is set, the model can map unknown CSV header names only. Claim rows never leave deterministic parsing, and the scan works without a key for documented aliases. |
 
 Current status of each stub is in [docs/STATUS.md](docs/STATUS.md).
 
