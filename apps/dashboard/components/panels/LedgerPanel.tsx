@@ -1,5 +1,5 @@
 "use client";
-/** Ledger panel (UI-03). Owner: P3. Every number here comes from the ledger, never a constant. */
+/** Ledger panel (UI-03). Owner: P3. Account balances only; the recovered and fee totals live in the header hero. */
 import { useEffect, useRef, useState } from "react";
 import type { LedgerSummary } from "@rxsolve/contracts";
 import { Panel } from "@/components/ui/Panel";
@@ -22,10 +22,6 @@ export function LedgerPanel({ live }: PanelProps) {
     <Panel id="ledger" title="Ledger" aside="change since this page loaded">
       {!ledger ? <p className="empty">Waiting for balances…</p> : (
         <>
-          <div className="stat-pair">
-            <div><small>Recovered to date</small><b className="money tone-good">{usd(ledger.recovered_to_date)}</b></div>
-            <div><small>Fees</small><b className="money">{usd(ledger.fees_to_date)}</b></div>
-          </div>
           <ul className="plain accounts">
             {Object.entries(ledger.balances).map(([key, balance]) => {
               const info = accountInfo(key);

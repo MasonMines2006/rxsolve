@@ -42,7 +42,7 @@ export function Hero({ live }: PanelProps) {
         <div className="hero__label">Recovered to date</div>
         <div className="hero__sub">
           {live.ledger
-            ? `${settled} of ${claims.length} claims settled · fees ${usd(fees)}`
+            ? `${settled} of ${claims.length} claims recovered · fees ${usd(fees)}`
             : "Waiting for ledger balances"}
         </div>
       </div>

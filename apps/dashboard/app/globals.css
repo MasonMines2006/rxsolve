@@ -77,9 +77,6 @@
   --motion-fast: 140ms;
   color-scheme: dark;
   --info: #6cc8ff;
-  --bubble-in: #22372d;
-  --bubble-out: #2b7fff;
-  --bubble-out-text: #ffffff;
   --font-display: var(--font-outfit);
 }
 
@@ -129,9 +126,6 @@
   --motion-fast: 140ms;
   color-scheme: light;
   --info: #0b5fa5;
-  --bubble-in: #e3ebe7;
-  --bubble-out: #0b66d6;
-  --bubble-out-text: #ffffff;
   --font-display: var(--font-outfit);
 }
 
@@ -191,9 +185,6 @@
   --motion-fast: 180ms;
   color-scheme: light;
   --info: #04609a;
-  --bubble-in: rgb(255 255 255 / 0.85);
-  --bubble-out: #1584e8;
-  --bubble-out-text: #ffffff;
   --font-display: var(--font-nunito);
 }
 

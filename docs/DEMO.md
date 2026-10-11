@@ -24,6 +24,7 @@ The Photon pharmacist phone is not yet registered as a project user, so do not t
 
 Three PBM personas, each modeled on a real PBM's public appeal procedure. Open by naming them: "These three mock PBMs are modeled after CVS Caremark, Express Scripts, and OptumRx."
 
+0. **Two windows.** Open the pharmacy system at `/pms` (the store's existing dispensing software, simulated) and RxSolve at `/` side by side. Say: "RxSolve sits beside the claim switch and reads the claim feed; the pharmacy changes nothing." Bill a prescription in `/pms`; the claim appears in the RxSolve Claims list on its own.
 1. **Portal.** A claim underpays. The browser agent fills the Caremark-style form and uploads the invoice. The PBM denies: wholesaler attestation missing (TN rule).
 2. **Remediate.** The agent requests the attestation from the wholesaler on WhatsApp, receives it, refiles through the same form, and the PBM concedes.
 3. **Email and fax, in parallel.** Two more claims are filed to the Express Scripts-style inbox and the OptumRx-style fax line. They resolve on the dashboard; the fax reply is a scanned PDF the agent reads.
@@ -51,7 +52,7 @@ Three PBM personas, each modeled on a real PBM's public appeal procedure. Open b
 | Nessie | Recovery visibly moving real balances between pharmacy, PBM, and platform accounts |
 | TigerData | The recovered-over-time chart climbing live as settlements land, read from a continuous aggregate over the `ledger_events` hypertable (the chart's caption names the source) |
 | ElevenLabs (stretch) | Only if the stretch lands: voice recap in the digest; phone negotiation with the PBM rep |
-| Frutiger Aero track | Flip the dashboard from dark to light to Frutiger Aero live during the run; the PMS mock and pharmacist phone flip with it |
+| Frutiger Aero track | Flip the dashboard from dark to light to Frutiger Aero live during the run; the PMS mock at `/pms` keeps its own fixed look, which shows it is a separate system |
 
 ## 21. Submission Assets
 

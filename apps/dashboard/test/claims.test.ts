@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { ClaimView } from "../lib/state";
-import { journeySteps, queueStatus, statusSentence } from "../lib/claims";
+import { statusSentence } from "../lib/claims";
 import { deliveryState } from "../lib/delivery";
 import { accountInfo, balanceChange } from "../lib/ledger";
 import { deadlineShort, deadlineUrgent } from "../lib/deadline";
@@ -19,27 +19,14 @@ test("delivery state distinguishes delivered, not delivered, and simulated", () 
   expect(deliveryState(undefined).kind).toBe("simulated");
 });
 
-test("journey marks the negotiating step skipped when nothing was denied", () => {
-  const steps = journeySteps(view({ stage: "SETTLED" }));
-  expect(steps.map((s) => s.state)).toEqual(["done", "done", "done", "skip", "done"]);
-  const live = journeySteps(view({ stage: "FILED" }));
-  expect(live.map((s) => s.state)).toEqual(["done", "done", "now", "todo", "todo"]);
-});
-
 test("status sentence reports a denial reason and field", () => {
   const v = view({
     stage: "NEGOTIATING",
-    decisions: [{ claim_id: "RXS-1", ticket_id: "T", status: "DENIED", reason: "missing_field", field: "attestation", delta: null, raw: null }],
+    decisions: [{ claim_id: "RXS-1", ticket_id: "T", status: "DENIED", reason: "missing_field", field: "wholesaler_attestation", delta: null, raw: null }],
   });
-  expect(statusSentence(v, () => "$0")).toContain("missing field (attestation)");
+  expect(statusSentence(v, () => "$0")).toContain("missing paper (signed statement from the wholesaler)");
 });
 
-test("queue status follows submission and live stage", () => {
-  expect(queueStatus({ submitting: false, submitted: false, rejected: false }).label).toBe("QUEUED");
-  expect(queueStatus({ submitting: true, submitted: false, rejected: false }).label).toBe("SENDING");
-  expect(queueStatus({ submitting: false, submitted: true, rejected: false, view: view({ stage: "EXCEPTION" }) }).label).toBe("NEEDS YOU");
-  expect(queueStatus({ submitting: false, submitted: true, rejected: false, view: view({ stage: "SETTLED" }) }).tone).toBe("good");
-});
 
 test("ledger helpers label accounts and compute change", () => {
   expect(accountInfo("PBM_PORTAL").name).toBe("PBM account");

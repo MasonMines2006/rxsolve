@@ -67,13 +67,13 @@ export function RecoveryChart({ live }: PanelProps) {
   const h = hover != null ? points[hover] : undefined;
 
   return (
-    <Panel id="chart" title="Recovered over time" aside="each step is a settlement" className="chart">
+    <Panel id="chart" title="Recovered over time" aside="each step is a recovery" className="chart">
       <p className="chart__total">
         <strong className="money">{usd(total)}</strong>{" "}
-        <span className="muted">across {points.reduce((n, p) => n + p.settlements, 0)} settlements</span>
+        <span className="muted">across {points.reduce((n, p) => n + p.settlements, 0)} recoveries</span>
       </p>
       <div ref={box} className="chart__plot">
-        {!points.length ? <p className="empty" style={{ height: H }}>No settlements yet.</p> : (
+        {!points.length ? <p className="empty" style={{ height: H }}>No recoveries yet.</p> : (
           <svg width={width} height={H} role="img" aria-label={`Cumulative recovered dollars, now ${usd(total)}`} onMouseLeave={() => setHover(null)}>
             {ticks.map((v) => (
               <g key={v}>
@@ -100,7 +100,7 @@ export function RecoveryChart({ live }: PanelProps) {
         {h && (
           <div className="chart__tip" style={{ left: Math.min(x(Date.parse(h.bucket) + step) + 8, width - 190) }}>
             <div>{clock(h.bucket)}</div>
-            <div>+<span className="money">{usd(h.recovered)}</span> · {h.settlements} settled</div>
+            <div>+<span className="money">{usd(h.recovered)}</span> · {h.settlements} recovered</div>
             <div>Total <span className="money">{usd(h.total)}</span></div>
           </div>
         )}
@@ -109,7 +109,7 @@ export function RecoveryChart({ live }: PanelProps) {
       <details className="chart__table">
         <summary>Table</summary>
         <table>
-          <thead><tr><th align="left">Bucket</th><th align="right">Recovered</th><th align="right">Fees</th><th align="right">Settled</th><th align="right">Total</th></tr></thead>
+          <thead><tr><th align="left">Bucket</th><th align="right">Recovered</th><th align="right">Fees</th><th align="right">Recoveries</th><th align="right">Total</th></tr></thead>
           <tbody>
             {points.map((p) => (
               <tr key={p.bucket}>

@@ -62,7 +62,7 @@ The product is channel-agnostic: one detection and evidence core, one adapter pe
 - Wholesaler document requests over WhatsApp/SMS
 - Deadline clock with state-regulator escalation path
 - Nessie settlement: PBM remittance deposit plus contingency fee transfer, backed by an 835-style remittance record
-- Dashboard plus cashier terminal, with a dark / light / Frutiger Aero theme switcher
+- RxSolve dashboard with a dark / light / Frutiger Aero theme switcher, plus the separate PMS mock at `/pms`
 - 60-claim seeded history (~18 underwater), spread across the three PBM personas
 - Abandonment logging with reasons, reported honestly
 
@@ -97,7 +97,7 @@ The product is channel-agnostic: one detection and evidence core, one adapter pe
 | Wholesaler Contact | P2 | WhatsApp/SMS document requests for missing attestations and invoices. |
 | PBM Sim | P1 | Standalone service. One deterministic decision engine behind three front doors (portal, email inbox, fax line) plus a phone rep (stretch). Three personas modeled on public PBM appeal procedures. |
 | Nessie Ledger | P1 | Pharmacy, PBM, platform, and patient accounts as real ledger entities. |
-| PMS Mock | P3 | The pharmacy's dispensing system and cashier terminal. Emits NCPDP-shaped B1 claims to the PBM Sim switch and renders the NCPDP-shaped response. |
+| PMS Mock | P3 | The pharmacy's own dispensing system, a separate app at `/pms` with its own look (no theme switcher, no RxSolve state). Emits NCPDP-shaped B1 claims to the PBM Sim switch and shows the payer's response or rejection. RxSolve never links to it. |
 | Dashboard | P3 | Recovery feed, pipeline board, ledger panel, channel viewer. |
 
 ## 4. Architecture
@@ -646,7 +646,7 @@ async def settle_recovery(claim: Claim, delta: Decimal, fee_pct: float = 0.25) -
 
 | Panel | Contents |
 |---|---|
-| PMS Mock / Cashier Terminal | The pharmacy's dispensing screen: patient queue, line items, NCPDP-shaped response. Shows RESOLVED ABOVE COST or an in-flight recovery badge. |
+| PMS Mock (`/pms`) | The pharmacy's dispensing screen: queue of prescriptions ready to bill, line items, the payer's NCPDP-shaped response or reject code. It shows nothing from RxSolve; recovery status lives on the RxSolve home claims list and status screen. |
 | Live Recovery Feed | Cards as claims resolve: drug, delta, PBM, channel, deadline countdown, status |
 | Pipeline Board | Kanban: DETECTED, EVIDENCE, FILED, NEGOTIATING, SETTLED, plus ESCALATED and ABANDONED. Deadline clock per card. |
 | Ledger Panel | Nessie balances, recovered-to-date, fees accrued |

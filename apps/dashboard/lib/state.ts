@@ -1,6 +1,6 @@
 /** Folds /ws/live events into what the panels render. Owner: P3. Pure: easy to unit test. */
 import type {
-  Action, ChannelMessage, Claim, Decision, Evidence, LedgerSummary, LiveEvent, Stage, Ticket, Verdict,
+  Action, ChannelMessage, Claim, Decision, Evidence, LedgerSummary, LiveEvent, LivePayloads, Stage, Ticket, Verdict,
 } from "@rxsolve/contracts";
 
 export type ClaimView = {
@@ -12,6 +12,7 @@ export type ClaimView = {
   ticket?: Ticket;
   decisions: Decision[];
   actions: Action[];
+  settlement?: LivePayloads["ledger.settled"];
 };
 
 export type LiveState = {
@@ -52,7 +53,7 @@ export function reduce(s: LiveState, m: Msg): LiveState {
     case "channel.message": s2.messages = [...s2.messages, e.payload]; break;
     case "notifier.message": s2.phone = [...s2.phone, e.payload]; break;
     case "ledger.balances": s2.ledger = e.payload; break;
-    case "ledger.settled":
+    case "ledger.settled": patch(e.claim_id, { settlement: e.payload }); break;
     case "exception.raised":
       break; // shown via stage + log; panels may want them later
   }

@@ -1,0 +1,55 @@
+/* Pharmacy dispensing system. Own palette and type; shares nothing with the RxSolve stylesheets. */
+.pms-html {
+  --pms-bg: #e6eaf0;
+  --pms-panel: #ffffff;
+  --pms-bar: #243b5a;
+  --pms-bar-text: #ffffff;
+  --pms-border: #b4bfcc;
+  --pms-row-alt: #f3f5f8;
+  --pms-select: #dce8f7;
+  --pms-text: #1c2530;
+  --pms-muted: #56647a;
+  --pms-accent: #1f5fa8;
+  --pms-ok: #1f6b3a;
+  --pms-bad: #a32020;
+  --pms-focus: #0b57d0;
+  color-scheme: light;
+}
+.pms-body {
+  margin: 0;
+  color: var(--pms-text);
+  background: var(--pms-bg);
+  font: 14px/1.4 "Segoe UI", Arial, Helvetica, sans-serif;
+}
+.pms-app { display: grid; min-height: 100vh; grid-template-rows: auto 1fr auto; }
+.pms-top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 24px; padding: 8px 16px; color: var(--pms-bar-text); background: var(--pms-bar); }
+.pms-top__store { font-size: 16px; font-weight: 700; }
+.pms-top__meta { display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 13px; color: #c9d6e8; }
+.pms-main { display: grid; gap: 12px; align-content: start; padding: 12px 16px; width: min(100%, 1100px); }
+.pms-box { background: var(--pms-panel); border: 1px solid var(--pms-border); }
+.pms-box__title { margin: 0; padding: 6px 10px; font-size: 14px; font-weight: 700; background: #d3dbe6; border-bottom: 1px solid var(--pms-border); }
+.pms-box__body { padding: 10px; }
+.pms-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.pms-table th, .pms-table td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--pms-border); }
+.pms-table th { font-weight: 600; background: #eef1f5; }
+.pms-table tbody tr:nth-child(even) { background: var(--pms-row-alt); }
+.pms-table tbody tr[aria-selected="true"] { background: var(--pms-select); }
+.pms-table td.pms-num, .pms-table th.pms-num { text-align: right; font-variant-numeric: tabular-nums; }
+.pms-pick { all: unset; cursor: pointer; color: var(--pms-accent); text-decoration: underline; }
+.pms-pick:focus-visible, .pms-btn:focus-visible, .pms-details > summary:focus-visible { outline: 2px solid var(--pms-focus); outline-offset: 2px; }
+.pms-status { font-weight: 600; }
+.pms-status--ok { color: var(--pms-ok); }
+.pms-status--bad { color: var(--pms-bad); }
+.pms-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 10px; }
+.pms-btn { padding: 6px 16px; color: #fff; background: var(--pms-accent); border: 1px solid #174a85; border-radius: 2px; font: inherit; font-weight: 600; cursor: pointer; }
+.pms-btn:disabled { color: #e8eef6; background: #8aa4c4; border-color: #8aa4c4; cursor: default; }
+.pms-resp { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; }
+.pms-resp dt { color: var(--pms-muted); }
+.pms-resp dd { margin: 0; font-variant-numeric: tabular-nums; }
+.pms-error { margin: 8px 0 0; color: var(--pms-bad); font-weight: 600; }
+.pms-details > summary { cursor: pointer; color: var(--pms-accent); }
+.pms-details__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 8px; }
+.pms-details dl { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; margin: 0; font-size: 13px; }
+.pms-details dt { color: var(--pms-muted); }
+.pms-details dd { margin: 0; font-family: Consolas, "Courier New", monospace; text-align: right; }
+.pms-foot { padding: 8px 16px; font-size: 13px; color: var(--pms-muted); border-top: 1px solid var(--pms-border); background: #dfe5ec; }
