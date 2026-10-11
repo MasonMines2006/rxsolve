@@ -124,6 +124,22 @@ test("HTTP errors are actionable without leaking the API key", async () => {
   expect((failure as Error).message).toContain("[redacted]");
 });
 
+test("nested Nessie validation errors are exposed without leaking credentials", async () => {
+  const apiKey = "nested-sensitive-key";
+  const ledger = new NessieLedger({
+    key: apiKey,
+    version: "v1",
+    baseUrl: "https://nessie.test",
+    fetch: async () => Response.json({ errors: [{ field: "status", message: `invalid value for ${apiKey}` }] }, { status: 400 }),
+  });
+
+  const failure = await ledger.ensureAccounts(["PH-MEADOWBROOK"]).catch((error: unknown) => error);
+  expect(failure).toBeInstanceOf(Error);
+  expect((failure as Error).message).toContain("HTTP 400");
+  expect((failure as Error).message).toContain("status: invalid value for [redacted]");
+  expect((failure as Error).message).not.toContain(apiKey);
+});
+
 test("invalid transfer amounts are rejected before posting", async () => {
   const fake = fakeNessie();
   const ledger = new NessieLedger(options(fake));

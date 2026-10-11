@@ -52,9 +52,24 @@ function entityId(value: unknown): string | null {
 }
 
 function displayName(value: unknown): string {
+  if (typeof value === "string") return value.trim().slice(0, 300);
   const object = asObject(value);
-  const message = object?.message ?? object?.error ?? object?.error_message;
-  return typeof message === "string" ? message : "";
+  if (!object) return "";
+  for (const key of ["message", "error_message", "detail", "error"]) {
+    if (typeof object[key] === "string") return String(object[key]).slice(0, 300);
+  }
+  const errors = object.errors ?? object.validation_errors ?? object.details;
+  if (Array.isArray(errors)) {
+    return errors.map((entry) => {
+      const item = asObject(entry);
+      if (!item) return typeof entry === "string" ? entry : "";
+      const field = item.field ?? item.param ?? item.path;
+      const message = item.message ?? item.error ?? item.reason;
+      if (typeof message === "string") return `${typeof field === "string" ? `${field}: ` : ""}${message}`;
+      return JSON.stringify(item);
+    }).filter(Boolean).join("; ").slice(0, 300);
+  }
+  return JSON.stringify(object).slice(0, 300);
 }
 
 export class NessieLedger implements Ledger {
@@ -97,7 +112,7 @@ export class NessieLedger implements Ledger {
       try {
         body = JSON.parse(text) as unknown;
       } catch {
-        body = null;
+        body = text;
       }
     }
     if (!response.ok) {
