@@ -94,3 +94,25 @@ Validation results:
 - The full repository passed 157 tests and 794 assertions.
 - All four workspaces passed type checking.
 - Browser QA selected and ran the high-recovery example, showed the progress state, then calculated $290.50 ready to recover across six claims. No browser warnings or errors were recorded.
+
+## Deterministic example regression suite
+
+`apps/api/test/opportunity-scan-examples.test.ts` locks all five example CSVs to reviewed expected results. The suite checks every row's exact status, recalculates each shortfall from acquisition cost and total paid, checks the complete summary totals, and verifies every ready claim has its required evidence and an open deadline.
+
+The tests also assert that the optional header-mapping model is called zero times for every bundled example. These results therefore come from the scanner's deterministic rules, not generated predictions.
+
+A mutation regression test changes the facts on the same claim without changing its ID:
+
+- Paying the full acquisition cost changes it from ready to paid fairly.
+- Removing invoice evidence changes it to missing data while preserving its shortfall.
+- Moving its deadline into the past changes it to expired while preserving its shortfall.
+
+Validation results:
+
+- The new suite passed 6 tests with 129 assertions.
+- Combined scanner tests passed 14 tests with 148 assertions.
+- `apps/api/src/opportunity-scan.ts` reached 96.43% function coverage and 93.18% line coverage.
+- The full repository passed 163 tests with 923 assertions across 26 files.
+- All four workspaces passed type checking.
+
+This evidence proves the implementation follows the documented rules and responds to input changes. It does not prove those rules are sufficient for every real PBM contract or jurisdiction; that policy should be reviewed with a pharmacy reimbursement specialist before production use.
