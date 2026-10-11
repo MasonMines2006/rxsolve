@@ -13,20 +13,26 @@ import { useLive } from "@/lib/live";
 export default function Page() {
   const live = useLive();
   return (
-    <main style={{ padding: 16, display: "grid", gap: 12 }}>
-      <header style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <strong style={{ fontSize: 20 }}>RxSolve</strong>
-        <span className="pill">{live.connected ? "live" : "connecting…"}</span>
-        <div style={{ marginLeft: "auto" }}><ThemeSwitcher /></div>
+    <main className="dashboard-shell">
+      <header className="dashboard-header">
+        <div className="dashboard-brand">
+          <h1>RxSolve</h1>
+          <p className="muted">Prescription recovery operations</p>
+        </div>
+        <p className={`dashboard-live ${live.connected ? "dashboard-live--connected" : "dashboard-live--reconnecting"}`} role="status" aria-live="polite">
+          <span className="dashboard-live__indicator" aria-hidden="true" />
+          {live.connected ? "Live stream connected" : "Connecting to live stream…"}
+        </p>
+        <ThemeSwitcher />
       </header>
-      <section style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
+      <section className="dashboard-primary-grid" aria-label="Live recovery operations">
         <CashierTerminal live={live} />
         <RecoveryFeed live={live} />
         <LedgerPanel live={live} />
         <RecoveryChart live={live} />
       </section>
       <PipelineBoard live={live} />
-      <section style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
+      <section className="dashboard-secondary-grid" aria-label="Channel and pharmacist communications">
         <ChannelViewer live={live} />
         <PharmacistPhone live={live} />
       </section>

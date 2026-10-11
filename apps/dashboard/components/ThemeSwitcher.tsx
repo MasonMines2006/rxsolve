@@ -1,25 +1,53 @@
 "use client";
-/** Header theme control (UI-07). Owner: P3. Persists per viewer; flips live without reload. */
+/** Header theme control (UI-07). Persists per viewer and switches without a reload. */
 import { useEffect, useState } from "react";
 
 const THEMES = ["dark", "light", "aero"] as const;
 type Theme = (typeof THEMES)[number];
 
+function isTheme(value: string | undefined): value is Theme {
+  return THEMES.includes(value as Theme);
+}
+
+function themeLabel(theme: Theme) {
+  return theme === "aero" ? "Frutiger Aero" : theme[0]!.toUpperCase() + theme.slice(1);
+}
+
 export function ThemeSwitcher() {
   const [theme, setTheme] = useState<Theme>("dark");
-  useEffect(() => setTheme((document.documentElement.dataset.theme as Theme) || "dark"), []);
-  const pick = (t: Theme) => {
-    document.documentElement.dataset.theme = t;
-    try { localStorage.setItem("rxsolve-theme", t); } catch {}
-    setTheme(t);
+
+  useEffect(() => {
+    const activeTheme = document.documentElement.dataset.theme;
+    if (isTheme(activeTheme)) setTheme(activeTheme);
+  }, []);
+
+  const pick = (nextTheme: Theme) => {
+    document.documentElement.dataset.theme = nextTheme;
+    try {
+      localStorage.setItem("rxsolve-theme", nextTheme);
+    } catch {
+      // The in-memory theme still applies when storage is unavailable.
+    }
+    setTheme(nextTheme);
   };
+
   return (
-    <div role="group" aria-label="Theme" style={{ display: "flex", gap: 6 }}>
-      {THEMES.map((t) => (
-        <button key={t} aria-pressed={theme === t} onClick={() => pick(t)}>
-          {t === "aero" ? "Frutiger Aero" : t[0]!.toUpperCase() + t.slice(1)}
+    <div className="theme-switcher" role="group" aria-label="Color theme">
+      {THEMES.map((option) => (
+        <button
+          key={option}
+          className="theme-switcher__option"
+          type="button"
+          aria-label={`Use ${themeLabel(option)} theme`}
+          aria-pressed={theme === option}
+          onClick={() => pick(option)}
+        >
+          {themeLabel(option)}
         </button>
       ))}
+      <span className="sr-only" aria-live="polite" aria-atomic="true">
+        Theme: {themeLabel(theme)}
+      </span>
     </div>
   );
 }
