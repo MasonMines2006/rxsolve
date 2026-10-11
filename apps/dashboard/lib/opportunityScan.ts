@@ -90,3 +90,75 @@ export type OpportunityScanResult = {
     reason: string;
   }>;
 };
+
+// --- Review queue and policy setup -------------------------------------------------------------
+// Everything below is a preview that runs in the browser. It never stores a claim or files an appeal.
+
+export type ScanClaim = OpportunityScanResult["claims"][number];
+
+/** The fields the policy preview needs. Kept small so tests do not have to build a full claim. */
+type QueueClaim = Pick<ScanClaim, "claim_id" | "status" | "shortfall">;
+
+/** Same default as the API's standing authorization in apps/api/src/policy.ts. */
+export const DEFAULT_AUTO_FILE_MAX = 100;
+
+const roundMoney = (value: number) => Math.round(value * 100) / 100;
+const dollars = (value: number) => `$${value.toFixed(2)}`;
+const sumShortfall = (claims: readonly QueueClaim[]) => roundMoney(claims.reduce((sum, claim) => sum + claim.shortfall, 0));
+
+/** Claims a pharmacist can act on: ready ones plus small shortfalls that need a human look. */
+export function reviewQueue<T extends { status: ScanStatus }>(claims: readonly T[]): T[] {
+  return claims.filter((claim) => claim.status === "READY" || claim.status === "NEEDS_REVIEW");
+}
+
+/** Adds the claim if it is not selected, removes it if it is. Returns a new array. */
+export function toggleSelected(selected: readonly string[], claimId: string): string[] {
+  return selected.includes(claimId) ? selected.filter((id) => id !== claimId) : [...selected, claimId];
+}
+
+/** Reads the dollar-limit text box. Returns null for anything that is not a plain non-negative amount. */
+export function parseAutoFileMax(raw: string): number | null {
+  const text = raw.trim().replace(/^\$/, "");
+  if (!/^\d+(\.\d{1,2})?$/.test(text)) return null;
+  return Number(text);
+}
+
+export type PolicyPreview<T extends QueueClaim> = {
+  autoFile: T[];
+  needsApproval: Array<{ claim: T; why: string }>;
+  autoFileTotal: number;
+  needsApprovalTotal: number;
+  selectedTotal: number;
+};
+
+/**
+ * Splits the selected claims the way the standing authorization would: inside the policy they
+ * would file on their own, outside it they would wait for the pharmacist.
+ */
+export function previewPolicy<T extends QueueClaim>(
+  claims: readonly T[],
+  selectedIds: readonly string[],
+  autoFileMax: number,
+): PolicyPreview<T> {
+  const selected = reviewQueue(claims).filter((claim) => selectedIds.includes(claim.claim_id));
+  const autoFile: T[] = [];
+  const needsApproval: Array<{ claim: T; why: string }> = [];
+
+  for (const claim of selected) {
+    if (claim.status === "NEEDS_REVIEW") {
+      needsApproval.push({ claim, why: "Small shortfall needs pharmacist review" });
+    } else if (claim.shortfall > autoFileMax) {
+      needsApproval.push({ claim, why: `${dollars(claim.shortfall)} is over the ${dollars(autoFileMax)} auto-file limit` });
+    } else {
+      autoFile.push(claim);
+    }
+  }
+
+  return {
+    autoFile,
+    needsApproval,
+    autoFileTotal: sumShortfall(autoFile),
+    needsApprovalTotal: sumShortfall(needsApproval.map((entry) => entry.claim)),
+    selectedTotal: sumShortfall(selected),
+  };
+}

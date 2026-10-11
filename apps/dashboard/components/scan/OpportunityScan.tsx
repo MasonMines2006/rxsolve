@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { PolicySetup } from "@/components/scan/PolicySetup";
 import { Panel } from "@/components/ui/Panel";
 import {
   EXAMPLE_SCANS,
   remainingScanDelay,
-  readyClaimIds,
+  reviewQueue,
   scanStatusPresentation,
   type OpportunityScanResult,
 } from "@/lib/opportunityScan";
@@ -76,7 +77,7 @@ export function OpportunityScan() {
     await analyze(await file.text(), file.name);
   }
 
-  const readyIds = result ? readyClaimIds(result.claims) : [];
+  const queue = result ? reviewQueue(result.claims) : [];
 
   return (
     <div className="scan-flow">
@@ -188,14 +189,16 @@ export function OpportunityScan() {
 
             <div className="scan-stage">
               <div>
-                <strong>{staged ? `${readyIds.length} claims staged for policy review` : "Nothing will be filed yet"}</strong>
-                <p>{staged ? "Next, the pharmacist chooses the dollar limit and approval rules." : "Review the deterministic triage before handing eligible claims to RxSolve."}</p>
+                <strong>{staged ? `${queue.length} claims moved to the review queue` : "Nothing will be filed yet"}</strong>
+                <p>{staged ? "Choose the claims and the dollar limit below." : "Review ready and needs-review claims together, then set your approval limit."}</p>
               </div>
-              <button className="btn" type="button" disabled={!readyIds.length || staged} onClick={() => setStaged(true)}>
-                {staged ? "Ready for policy setup" : `Stage ${readyIds.length} ready claims`}
+              <button className="btn" type="button" disabled={!queue.length || staged} onClick={() => setStaged(true)}>
+                {staged ? "Review queue open" : `Review ${queue.length} claims`}
               </button>
             </div>
           </Panel>
+
+          {staged && <PolicySetup claims={queue} />}
 
           <Panel id="scan-safety" title="How the scan handles your file">
             <div className="scan-safety">
