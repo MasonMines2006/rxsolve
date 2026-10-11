@@ -61,7 +61,7 @@ export class EmailAdapter implements ChannelAdapter {
     const { mail, missing } = await this.files(ev.attachments);
     const lines = [
       intro, "", `Claim: ${claim_id}`, `Statute: ${ev.statute}`, `Amount appealed: ${ev.delta.toFixed(2)}`,
-      ...Object.entries(ev.fields).map(([k, v]) => `${k}: ${String(v)}`),
+      ...Object.entries(ev.fields).map(([k, v]) => `${k}: ${v === null || v === undefined ? "" : String(v)}`),
       "", `Attachments: ${ev.attachments.join(", ") || "none"}`,
     ];
     const msg = {

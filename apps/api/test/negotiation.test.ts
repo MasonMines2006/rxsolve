@@ -11,7 +11,7 @@ import { pdfText } from "../src/adapters/fax-pdf";
 import { buildEvidence } from "../src/agents/evidence";
 import { MAX_REMEDIATIONS, onDenial, resetNegotiation, type NegotiationOpts } from "../src/agents/negotiation";
 import { renderPdf } from "../src/agents/pdf";
-import { parseReply, requestDocument, wholesalerConfig } from "../src/agents/wholesaler";
+import { parseReply, quoteSupports, readReply, requestDocument, wholesalerConfig } from "../src/agents/wholesaler";
 import { config } from "../src/config";
 import { getDb, resetDb } from "../src/db";
 
@@ -218,4 +218,48 @@ test("auto wholesaler stub uses its known value without calling the model", asyn
   });
   expect(result).toMatchObject({ field: "wholesaler_attestation", value: "ATT-0901" });
   expect(modelCalls).toBe(0);
+});
+
+const reading = (r: { supplied: boolean; quote: string | null; value: string | null }) => (async () => r) as never;
+
+test("model-first reply reading: bare invoice number in plain text", async () => {
+  const text = "The invoice number is 55120";
+  const v = await readReply(text, "invoice_number", reading({ supplied: true, quote: "55120", value: "INV-55120" }));
+  expect(v).toBe("INV-55120");
+  expect(parseReply(text, "invoice_number")).toBeNull();
+});
+
+test("model-first reply reading: date is normalized to ISO", async () => {
+  const text = "inv 55120 dated Oct 1 2026";
+  expect(await readReply(text, "invoice_number", reading({ supplied: true, quote: "inv 55120", value: "INV-55120" }))).toBe("INV-55120");
+  expect(await readReply(text, "invoice_date", reading({ supplied: true, quote: "Oct 1 2026", value: "2026-10-01" }))).toBe("2026-10-01");
+  expect(await readReply(text, "invoice_date", reading({ supplied: true, quote: "Oct 1 2026", value: "2026-10-02" }))).toBeNull();
+});
+
+test("model-first reply reading: a refusal is null even if the text has digits", async () => {
+  const text = "We can't send that, invoice 4471 was voided";
+  expect(await readReply(text, "invoice_number", reading({ supplied: false, quote: null, value: null }))).toBeNull();
+});
+
+test("model-first reply reading: a value absent from its quote falls back to the regex parse", async () => {
+  const hallucinated = reading({ supplied: true, quote: "the invoice", value: "INV-99999" });
+  expect(await readReply("Here you go: INV-55120", "invoice_number", hallucinated)).toBe("INV-55120");
+  expect(await readReply("see attached", "invoice_number", hallucinated)).toBeNull();
+  const badQuote = reading({ supplied: true, quote: "INV-77777", value: "INV-77777" });
+  expect(await readReply("Here you go: INV-55120", "invoice_number", badQuote)).toBe("INV-55120");
+});
+
+test("model-first reply reading: with no key and no ask the regex parse runs; model errors fall back too", async () => {
+  expect(await readReply("Invoice number is INV-55120", "invoice_number")).toBe("INV-55120");
+  expect(await readReply("The invoice number is 55120", "invoice_number")).toBeNull();
+  const boom = (async () => { throw new Error("down"); }) as never;
+  expect(await readReply("Invoice INV-55120", "invoice_number", boom)).toBe("INV-55120");
+});
+
+test("quoteSupports checks cost and date tokens against the quote", () => {
+  expect(quoteSupports("acquisition_cost", "10.5", "unit cost $10.50 each")).toBe(true);
+  expect(quoteSupports("acquisition_cost", "11", "unit cost $10.50 each")).toBe(false);
+  expect(quoteSupports("invoice_date", "2026-10-01", "10/01/2026")).toBe(true);
+  expect(quoteSupports("invoice_date", "2026-10-01", "October 1st, 2026")).toBe(true);
+  expect(quoteSupports("invoice_date", "2026-02-30", "Feb 30 2026")).toBe(false);
 });

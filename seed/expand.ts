@@ -7,7 +7,11 @@ export type SeedClaim = {
   request: Record<string, string | number>;
 };
 
-const base = seed.claims as SeedClaim[];
+const all = seed.claims as SeedClaim[];
+/** The first six are expansion templates; the rest are fixed demo claims that occupy their own serials. */
+const base = all.slice(0, 6);
+const fixed = all.slice(6);
+const fixedIds = new Set(fixed.map((c) => c.claim_id));
 const underwaterTemplates = [base[0]!, base[1]!, base[2]!];
 const clearTemplates: SeedClaim[] = [
   base[3]!,
@@ -55,6 +59,7 @@ function generated(template: SeedClaim, serial: number, expected: string, state 
 
 const generatedClaims: SeedClaim[] = [];
 for (let serial = 7; serial <= 20; serial++) {
+  if (fixedIds.has(`RXS-${String(serial).padStart(4, "0")}`)) continue;
   generatedClaims.push(generated(underwaterTemplates[(serial - 7) % underwaterTemplates.length]!, serial, "SETTLED (underwater)"));
 }
 
@@ -68,4 +73,4 @@ for (; serial <= 60; serial++) {
 }
 
 /** Deterministic demo load: 18 underwater, 39 clear, 3 marginal across the three PBM personas. */
-export const seedClaims: SeedClaim[] = [...base, ...generatedClaims];
+export const seedClaims: SeedClaim[] = [...base, ...fixed, ...generatedClaims];

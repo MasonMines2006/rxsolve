@@ -12,6 +12,8 @@ deliberately separate: our spec of a PBM can be wrong; the PBM Sim is the ground
 | `contracts.json` | P1 | Contract rate per unit, keyed `"<plan>|<ndc>"` |
 | `drugs.json` | P3 | Display names for NDCs on the dashboard and cashier terminal |
 
+`invoices.json` holds two demo rows with a deliberate null (NDC 16714029201 `invoice_number`, NDC 60505260901 `invoice_date`) for the RXS-0007/0008 wholesaler beat; the PBM Sim personas require those fields where `specs.json` does not.
+
 RES-01 is done: every spec and statute carries a cited source and a version. Known caveats:
 
 - Appeal windows: the statute's calendar window is stored next to `window_business_days`, which is the
