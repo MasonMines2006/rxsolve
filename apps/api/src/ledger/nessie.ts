@@ -6,6 +6,9 @@
  * Nessie uses the API key as a query parameter; never include the request URL in an error message.
  * Domain values are dollars; Nessie amounts and balances are integer cents, converted at this boundary.
  * Classic v1 has no transfer create route, so a transfer is a withdrawal followed by a deposit.
+ * The sandbox never updates an account's `balance` field after deposits or withdrawals (verified live), so that
+ * field is only the opening balance; balances() adds the account's completed deposits and subtracts its
+ * completed withdrawals, all read back from Nessie.
  */
 import type { Transfer } from "@rxsolve/contracts";
 import type { Ledger } from "./index";
@@ -23,7 +26,9 @@ type NessieOptions = {
 
 const DEFAULT_BASE_URL = "https://api.nessieisreal.com";
 const DEFAULT_OPENING_BALANCE = 100_000;
-const SANDBOX_CUSTOMER = { first_name: "RxSolve", last_name: "Demo" };
+// "RxSolve Demo" holds the pre-cents accounts (opening balance stored in dollars) and a PBM-PORTAL account with
+// a withdrawal Nessie stored without a status, which makes its withdrawal list unreadable. Fresh customer, fresh accounts.
+const SANDBOX_CUSTOMER = { first_name: "RxSolve", last_name: "Ledger" };
 
 function asObject(value: unknown): JsonObject | null {
   return value !== null && typeof value === "object" && !Array.isArray(value)
@@ -209,6 +214,9 @@ export class NessieLedger implements Ledger {
 
     const payload = JSON.stringify({
       medium: "balance",
+      // Live Nessie rejects a deposit without status (HTTP 400), and stores a withdrawal without one as a record
+      // that later breaks GET /accounts/{id}/withdrawals. "completed" is what moves the balance.
+      status: "completed",
       transaction_date: new Date().toISOString().slice(0, 10),
       amount: amountCents,
       description: transfer.memo ?? `${transfer.kind}: ${transfer.from} to ${transfer.to}`,
@@ -233,9 +241,17 @@ export class NessieLedger implements Ledger {
 
   async balances(): Promise<Record<string, number>> {
     this.requireClassicCredentials();
+    const completedCents = async (remoteId: string, kind: "deposits" | "withdrawals") =>
+      asRecords(await this.request(`/accounts/${encodeURIComponent(remoteId)}/${kind}`))
+        .filter((tx) => tx.status === "completed")
+        .reduce((sum, tx) => sum + Number(tx.amount ?? 0), 0);
     const entries = await Promise.all([...this.accountIds].map(async ([logicalId, remoteId]) => {
-      const account = unwrapObject(await this.request(`/accounts/${encodeURIComponent(remoteId)}`));
-      const balance = Number(account?.balance);
+      const [account, deposits, withdrawals] = await Promise.all([
+        this.request(`/accounts/${encodeURIComponent(remoteId)}`).then(unwrapObject),
+        completedCents(remoteId, "deposits"),
+        completedCents(remoteId, "withdrawals"),
+      ]);
+      const balance = Number(account?.balance) + deposits - withdrawals;
       if (!Number.isFinite(balance)) throw new Error(`Nessie account ${logicalId} returned an invalid balance`);
       return [logicalId, balance / 100] as const;
     }));

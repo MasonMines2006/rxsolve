@@ -614,7 +614,7 @@ Four entities, created at boot:
 | `RXSOLVE-PLATFORM` | Collects the 25% contingency fee |
 | `PATIENT-*` | Patient accounts for terminal-flow realism |
 
-On Classic v1, logical actor IDs map to Checking-account nicknames under the synthetic `RxSolve Demo` customer. `NessieLedger` discovers existing customer/accounts before creating missing ones; each new account receives the same $100,000 sandbox opening balance as the local double. This opening balance is sandbox setup, not recovery revenue. Domain values stay in dollars; the adapter sends integer cents, and `transfer` posts a withdrawal then a deposit (a failed deposit throws a half-posted error and is not retried).
+On Classic v1, logical actor IDs map to Checking-account nicknames under the synthetic `RxSolve Ledger` customer. `NessieLedger` discovers existing customer/accounts before creating missing ones; each new account receives the same $100,000 sandbox opening balance as the local double. This opening balance is sandbox setup, not recovery revenue. Domain values stay in dollars; the adapter sends integer cents, and `transfer` posts a withdrawal then a deposit, both `status: "completed"` (a failed deposit throws a half-posted error and is not retried). The sandbox never updates an account's `balance` field, so `balances()` reports it as the opening balance plus completed deposits minus completed withdrawals. `settleRecovery` refuses a claim that already has a remittance before moving any money.
 
 **Every displayed dollar is a real movement.** Remittance adjustment on approval, fee transfer on settlement. "Recovered to date" is a computed balance, not a stored counter.
 

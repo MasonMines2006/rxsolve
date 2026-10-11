@@ -30,6 +30,10 @@ export async function settleRecovery(claim: Claim, delta: number): Promise<Ledge
       kind: "contingency_fee", memo: `contingency fee ${claim.claim_id}`,
     },
   ];
+  // One remittance per claim: a re-run of a settled claim (rehearsals, restarts) must never move money twice.
+  if (await getDb().remittances.get(remittance.remittance_id)) {
+    throw new Error(`${claim.claim_id} is already settled (${remittance.remittance_id}); refusing to move money twice`);
+  }
   for (const t of transfers) await getLedger().transfer(t);
   const settlement: LedgerSettlement = { event: "RECOVERY_SETTLED", claim_id: claim.claim_id, transfers };
   await getDb().remittances.insert(remittance);

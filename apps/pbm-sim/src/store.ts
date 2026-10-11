@@ -10,5 +10,7 @@ export type Appeal = {
 
 export const claims: Record<string, unknown>[] = []; // adjudicated switch transactions
 export const appeals = new Map<string, Appeal>();
-let seq = 48213;
+// Ticket numbers must never repeat across restarts: the API persists appeals keyed by ticket_id (TigerData),
+// so a counter that restarts at a constant collides with the last run. Start from the boot time in seconds.
+let seq = Math.floor(Date.now() / 1000);
 export const nextTicket = (prefix: string) => `${prefix}-${seq++}`;

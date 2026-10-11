@@ -13,6 +13,7 @@ function fakeNessie() {
   let accountSequence = 0;
   let failDeposits = false;
   let transactionSequence = 0;
+  const transactions: { account: string; kind: string; amount: number; status: unknown }[] = [];
 
   const fetcher: Fetcher = async (input, init = {}) => {
     const url = new URL(String(input));
@@ -45,12 +46,17 @@ function fakeNessie() {
     }
 
     const txPath = path.match(/^\/accounts\/([^/]+)\/(withdrawals|deposits)$/);
+    if (txPath && method === "GET") {
+      return Response.json(transactions.filter((tx) => tx.account === txPath[1] && tx.kind === txPath[2]));
+    }
     if (txPath && method === "POST") {
       const account = accounts.get(txPath[1]!);
       if (!account) return Response.json({ message: "unknown account" }, { status: 404 });
       if (failDeposits && txPath[2] === "deposits") return Response.json({ message: "deposit rejected" }, { status: 500 });
+      if (!body?.status) return Response.json(`1 validation error for DepositCreate\nstatus\n  field required`, { status: 400 }); // as live Nessie
       const amount = Number(body?.amount);
-      account.balance = Number(account.balance) + (txPath[2] === "withdrawals" ? -amount : amount);
+      // Like live Nessie: the account's balance field never changes; the transaction is only recorded.
+      transactions.push({ account: txPath[1]!, kind: txPath[2]!, amount, status: body.status });
       const id = `${txPath[2] === "withdrawals" ? "wd" : "dep"}-${++transactionSequence}`;
       return Response.json({ code: 201, message: "Created", objectCreated: { _id: id } }, { status: 201 });
     }
@@ -94,7 +100,7 @@ test("classic v1 account setup is idempotent and transfers/balances use mapped a
   expect(fake.requests.filter((request) => request.method === "POST" && request.path === "/customers")).toHaveLength(1);
   expect(fake.requests.filter((request) => request.method === "POST" && request.path.endsWith("/accounts"))).toHaveLength(3);
   expect(fake.requests.every((request) => request.key === "test-key")).toBe(true);
-  const posts = fake.requests.filter((request) => /\/(withdrawals|deposits)$/.test(request.path));
+  const posts = fake.requests.filter((request) => request.method === "POST" && /\/(withdrawals|deposits)$/.test(request.path));
   expect(posts.map((request) => request.path)).toEqual(["/accounts/account-2/withdrawals", "/accounts/account-1/deposits"]);
   expect(posts[0]!.body).toMatchObject({ medium: "balance", amount: 640, description: "REM-1 remittance adjustment RXS-1" });
   expect(posts[0]!.body?.transaction_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
