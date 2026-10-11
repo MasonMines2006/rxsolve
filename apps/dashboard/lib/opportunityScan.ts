@@ -1,5 +1,44 @@
 export type ScanStatus = "READY" | "PAID_FAIRLY" | "NEEDS_REVIEW" | "MISSING_DATA" | "EXPIRED";
 
+export const MINIMUM_SCAN_DURATION_MS = 1_200;
+
+export function remainingScanDelay(startedAt: number, now = Date.now()): number {
+  return Math.max(0, MINIMUM_SCAN_DURATION_MS - (now - startedAt));
+}
+
+export const EXAMPLE_SCANS = [
+  {
+    id: "mixed",
+    name: "Mixed claim outcomes",
+    description: "Ready, review, missing evidence, expired, and fairly paid claims.",
+    path: "/sample-claims.csv",
+  },
+  {
+    id: "high-recovery",
+    name: "High recovery opportunity",
+    description: "Six complete claims with larger recoverable shortfalls.",
+    path: "/sample-high-recovery.csv",
+  },
+  {
+    id: "missing-evidence",
+    name: "Missing invoice evidence",
+    description: "Claims that need invoice details before they can move forward.",
+    path: "/sample-missing-evidence.csv",
+  },
+  {
+    id: "deadline-risk",
+    name: "Deadline risk",
+    description: "A mix of urgent open deadlines and claims that are already late.",
+    path: "/sample-deadline-risk.csv",
+  },
+  {
+    id: "alternate-export",
+    name: "Different column names",
+    description: "A pharmacy export that uses common aliases instead of RxSolve labels.",
+    path: "/sample-alternate-export.csv",
+  },
+] as const;
+
 type StatusTone = "good" | "muted" | "warn" | "bad";
 
 export function scanStatusPresentation(status: ScanStatus): { label: string; tone: StatusTone } {

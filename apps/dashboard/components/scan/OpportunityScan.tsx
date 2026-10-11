@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Panel } from "@/components/ui/Panel";
 import {
+  EXAMPLE_SCANS,
+  remainingScanDelay,
   readyClaimIds,
   scanStatusPresentation,
   type OpportunityScanResult,
@@ -17,12 +19,14 @@ export function OpportunityScan() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [staged, setStaged] = useState(false);
+  const [selectedExampleId, setSelectedExampleId] = useState(EXAMPLE_SCANS[0].id);
 
   useEffect(() => {
     if (result) summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [result]);
 
   async function analyze(csv: string, name: string) {
+    const startedAt = Date.now();
     setPending(true);
     setError(null);
     setStaged(false);
@@ -36,6 +40,8 @@ export function OpportunityScan() {
       if (!response.ok || !body || !("claims" in body)) {
         throw new Error(body && "error" in body && body.error ? body.error : "The scan could not be completed.");
       }
+      const waitMs = remainingScanDelay(startedAt);
+      if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs));
       setResult(body);
       setSourceName(name);
     } catch (cause) {
@@ -48,12 +54,13 @@ export function OpportunityScan() {
   }
 
   async function analyzeExample() {
+    const example = EXAMPLE_SCANS.find((candidate) => candidate.id === selectedExampleId) ?? EXAMPLE_SCANS[0];
     setPending(true);
     setError(null);
     try {
-      const response = await fetch("/sample-claims.csv");
+      const response = await fetch(example.path);
       if (!response.ok) throw new Error("The example CSV could not be loaded.");
-      await analyze(await response.text(), "RxSolve example claims");
+      await analyze(await response.text(), example.name);
     } catch (cause) {
       setPending(false);
       setError(cause instanceof Error ? cause.message : "The example CSV could not be loaded.");
@@ -80,6 +87,19 @@ export function OpportunityScan() {
             <p className="scan-copy">Try the example file or choose a pharmacy claims export. RxSolve checks the shortfall, evidence, and filing deadline for every claim.</p>
           </div>
           <div className="scan-actions">
+            <label className="scan-example-picker">
+              <span>Example scenario</span>
+              <select
+                value={selectedExampleId}
+                disabled={pending}
+                onChange={(event) => setSelectedExampleId(event.target.value as typeof selectedExampleId)}
+              >
+                {EXAMPLE_SCANS.map((example) => (
+                  <option key={example.id} value={example.id}>{example.name}</option>
+                ))}
+              </select>
+              <small>{EXAMPLE_SCANS.find((example) => example.id === selectedExampleId)?.description}</small>
+            </label>
             <button
               className="btn btn--ghost"
               type="button"
@@ -87,7 +107,7 @@ export function OpportunityScan() {
               onClick={() => void analyzeExample()}
               disabled={pending}
             >
-              {pending ? "Checking claims..." : "Use example CSV"}
+              {pending ? "Checking claims..." : "Run example CSV"}
             </button>
             <label className="btn scan-file">
               Choose a CSV
@@ -100,6 +120,12 @@ export function OpportunityScan() {
             </label>
           </div>
         </div>
+        {pending && (
+          <div className="scan-progress" role="status" aria-live="polite">
+            <span>Analyzing claim data</span>
+            <div className="scan-progress__track" aria-hidden="true"><i /></div>
+          </div>
+        )}
         {error && <p className="scan-error" role="alert">Scan stopped: {error}</p>}
       </Panel>
 
