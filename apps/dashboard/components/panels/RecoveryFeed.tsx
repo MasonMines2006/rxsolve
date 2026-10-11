@@ -1,63 +1,56 @@
 "use client";
-/** Live recovery feed (UI-03). Owner: P3. */
-import { deadlineLabel, useDeadlineClock } from "@/lib/deadline";
+/** Underpaid claims list (UI-03). Owner: P3. Selecting a row drives the claim journey panel. */
+import { Panel } from "@/components/ui/Panel";
+import { Pill } from "@/components/ui/Pill";
+import { recoveryClaims, stageTone } from "@/lib/claims";
+import { deadlineShort, deadlineUrgent, useDeadlineClock } from "@/lib/deadline";
 import { type PanelProps, usd } from "./types";
 
-export function RecoveryFeed({ live }: PanelProps) {
+type Props = PanelProps & { selectedId: string | null; onSelect: (claimId: string) => void };
+
+export function RecoveryFeed({ live, selectedId, onSelect }: Props) {
   const now = useDeadlineClock();
-  const claimIds = [...new Set([...live.order, ...Object.keys(live.claims)])];
-  const claims = claimIds.flatMap((claimId) => {
-    const view = live.claims[claimId];
-    return view ? [{ claimId, view }] : [];
-  });
-  const recoveries = claims.filter(({ view }) =>
-    view.verdict && view.verdict.verdict !== "CLEAR" && view.stage !== "CLEARED",
-  );
-  const clearCount = claims.filter(({ view }) => view.verdict?.verdict === "CLEAR" || view.stage === "CLEARED").length;
+  const claims = recoveryClaims(live);
+  const total = Object.keys(live.claims).length;
 
   return (
-    <section className="panel" aria-labelledby="recovery-feed-title">
-      <h2 id="recovery-feed-title">Recovery feed</h2>
-      <ul className="plain" aria-label="Claims requiring recovery">
-        {recoveries.map(({ claimId, view }) => {
+    <Panel id="claims" title="Underpaid claims" aside={`${claims.length} open or settled`}>
+      <ul className="plain claim-list" aria-label="Claims requiring recovery" aria-live="polite" aria-relevant="additions">
+        {claims.map(({ claimId, view }) => {
+          const settled = view.stage === "SETTLED";
+          const deadline = view.verdict?.appeal_deadline;
+          const urgent = !settled && deadlineUrgent(deadline, now);
           const delta = view.verdict?.delta;
-          const deltaLabel = typeof delta === "number" && Number.isFinite(delta) ? usd(delta) : "—";
-          const status = view.stage ?? `${view.verdict!.verdict} · stage pending`;
-
           return (
             <li key={claimId}>
-              <article className="panel" aria-label={`Recovery claim ${claimId}`}>
-                <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-                  <div>
-                    <h3>{view.claim.drug || "Drug unavailable"}</h3>
-                    <p className="muted">{claimId}</p>
-                  </div>
-                  <span className="pill">{status}</span>
-                </header>
-                <dl style={{ display: "grid", gridTemplateColumns: "max-content minmax(0, 1fr)", gap: "4px 8px", margin: 0 }}>
-                  <dt>Delta</dt>
-                  <dd className="money" aria-label={deltaLabel === "—" ? "Delta unavailable" : `Delta ${deltaLabel}`} style={{ margin: 0 }}>{deltaLabel}</dd>
-                  <dt>PBM</dt>
-                  <dd style={{ margin: 0 }}>{view.claim.pbm || "PBM unavailable"}</dd>
-                  <dt>Channel</dt>
-                  <dd style={{ margin: 0 }}>{view.ticket?.channel ?? "Not filed"}</dd>
-                  <dt>Deadline</dt>
-                  <dd style={{ margin: 0 }}>{deadlineLabel(view.verdict?.appeal_deadline, now)}</dd>
-                </dl>
-              </article>
+              <button
+                type="button"
+                className="row-button claim-row"
+                aria-pressed={selectedId === claimId}
+                onClick={() => onSelect(claimId)}
+              >
+                <span className="mono claim-row__id">{claimId}</span>
+                <span>
+                  <strong className="row-title">{view.claim.drug || "Drug unavailable"}</strong>
+                  <small className="muted">{view.claim.pbm} · {view.ticket?.channel ?? "not filed"}</small>
+                </span>
+                <span className={`claim-row__delta money ${settled ? "tone-good" : "tone-bad"}`}>{usd(delta)}</span>
+                <Pill tone={stageTone(view.stage)}>{view.stage ?? "PENDING"}</Pill>
+                <span className={`mono claim-row__deadline ${urgent ? "tone-bad" : ""}`}>
+                  {settled ? "Satisfied" : deadlineShort(deadline, now)}
+                </span>
+              </button>
             </li>
           );
         })}
-        {recoveries.length === 0 && (
-          <li className="muted">
-            {claims.length === 0
-              ? "No claims received yet."
-              : clearCount === claims.length
-                ? "No recovery needed; clear claims are above cost."
-                : "No non-clear verdicts yet."}
-          </li>
-        )}
       </ul>
-    </section>
+      {claims.length === 0 && (
+        <p className="empty">
+          {total === 0
+            ? "Nothing underpaid yet. Ring up a claim at the register."
+            : "No recovery needed so far; every claim is at or above cost."}
+        </p>
+      )}
+    </Panel>
   );
 }

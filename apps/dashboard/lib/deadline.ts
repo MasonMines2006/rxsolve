@@ -34,3 +34,19 @@ export function deadlineLabel(deadline: string | null | undefined, now = Date.no
 
   return `${countdown} · ${deadline}`;
 }
+
+const URGENT_WITHIN = 2 * DAY;
+
+/** Compact countdown for dense rows, for example "2d 11h" or "Overdue". */
+export function deadlineShort(deadline: string | null | undefined, now = Date.now()): string {
+  const label = deadlineLabel(deadline, now);
+  if (label.startsWith("Overdue")) return "Overdue";
+  return label.split(" · ")[0]!.replace(/^Due in /, "");
+}
+
+/** True when a real deadline is past or less than two days away. */
+export function deadlineUrgent(deadline: string | null | undefined, now = Date.now()): boolean {
+  if (!deadline) return false;
+  const at = Date.parse(`${deadline}T23:59:59Z`);
+  return Number.isFinite(at) && at - now < URGENT_WITHIN;
+}

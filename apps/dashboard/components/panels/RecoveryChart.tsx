@@ -5,9 +5,10 @@
  */
 import { useEffect, useRef, useState } from "react";
 import type { RecoveryPoint } from "@rxsolve/contracts";
+import { Panel } from "@/components/ui/Panel";
 import { type PanelProps, usd } from "./types";
 
-const H = 180;
+const H = 300;
 const PAD = { top: 12, right: 12, bottom: 22, left: 52 };
 
 const clock = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -66,49 +67,48 @@ export function RecoveryChart({ live }: PanelProps) {
   const h = hover != null ? points[hover] : undefined;
 
   return (
-    <div className="panel">
-      <h2>Recovered over time</h2>
-      <p style={{ margin: "0 0 8px" }}>
-        <strong className="money" style={{ fontSize: 22 }}>{usd(total)}</strong>{" "}
+    <Panel id="chart" title="Recovered over time" aside="each step is a settlement" className="chart">
+      <p className="chart__total">
+        <strong className="money">{usd(total)}</strong>{" "}
         <span className="muted">across {points.reduce((n, p) => n + p.settlements, 0)} settlements</span>
       </p>
-      <div ref={box} style={{ position: "relative" }}>
-        {!points.length ? <p className="muted" style={{ height: H, margin: 0 }}>No settlements yet.</p> : (
+      <div ref={box} className="chart__plot">
+        {!points.length ? <p className="empty" style={{ height: H }}>No settlements yet.</p> : (
           <svg width={width} height={H} role="img" aria-label={`Cumulative recovered dollars, now ${usd(total)}`} onMouseLeave={() => setHover(null)}>
             {ticks.map((v) => (
               <g key={v}>
-                <line x1={PAD.left} x2={width - PAD.right} y1={y(v)} y2={y(v)} stroke="var(--border)" strokeWidth={1} />
-                <text x={PAD.left - 6} y={y(v) + 4} textAnchor="end" fontSize={11} fill="var(--text-muted)" className="money">{usd(v)}</text>
+                <line className="chart__grid" x1={PAD.left} x2={width - PAD.right} y1={y(v)} y2={y(v)} />
+                <text className="chart__tick" x={PAD.left - 6} y={y(v) + 4} textAnchor="end">{usd(v)}</text>
               </g>
             ))}
-            <text x={PAD.left} y={H - 6} fontSize={11} fill="var(--text-muted)">{clock(points[0]!.bucket)}</text>
-            <text x={width - PAD.right} y={H - 6} textAnchor="end" fontSize={11} fill="var(--text-muted)">{clock(new Date(t1).toISOString())}</text>
-            <path d={area} fill="var(--accent)" opacity={0.15} />
-            <path d={d} fill="none" stroke="var(--accent)" strokeWidth={2} strokeLinejoin="round" />
+            <text className="chart__tick" x={PAD.left} y={H - 6}>{clock(points[0]!.bucket)}</text>
+            <text className="chart__tick" x={width - PAD.right} y={H - 6} textAnchor="end">{clock(new Date(t1).toISOString())}</text>
+            <path className="chart__area" d={area} />
+            <path className="chart__line" d={d} />
             {points.map((p, i) => {
               const cx = x(Date.parse(p.bucket) + step);
               return (
                 <g key={p.bucket} onMouseEnter={() => setHover(i)}>
                   <rect x={cx - iw / points.length / 2} y={PAD.top} width={iw / points.length} height={ih} fill="transparent" />
-                  {hover === i && <line x1={cx} x2={cx} y1={PAD.top} y2={PAD.top + ih} stroke="var(--text-muted)" strokeWidth={1} strokeDasharray="3 3" />}
-                  <circle cx={cx} cy={y(p.total)} r={hover === i ? 5 : 4} fill="var(--accent)" stroke="var(--surface)" strokeWidth={2} />
+                  {hover === i && <line className="chart__guide" x1={cx} x2={cx} y1={PAD.top} y2={PAD.top + ih} />}
+                  <circle className="chart__dot" cx={cx} cy={y(p.total)} r={hover === i ? 8 : 6} />
                 </g>
               );
             })}
           </svg>
         )}
         {h && (
-          <div className="pill" style={{ position: "absolute", top: 4, left: Math.min(x(Date.parse(h.bucket) + step) + 8, width - 180), pointerEvents: "none", borderRadius: "var(--radius)", padding: "6px 8px", lineHeight: 1.4 }}>
-            <div className="muted">{clock(h.bucket)}</div>
+          <div className="chart__tip" style={{ left: Math.min(x(Date.parse(h.bucket) + step) + 8, width - 190) }}>
+            <div>{clock(h.bucket)}</div>
             <div>+<span className="money">{usd(h.recovered)}</span> · {h.settlements} settled</div>
             <div>Total <span className="money">{usd(h.total)}</span></div>
           </div>
         )}
       </div>
-      <p className="muted" style={{ fontSize: 12, margin: "6px 0 0" }}>Source: {source || "…"}</p>
-      <details style={{ fontSize: 12 }}>
-        <summary className="muted">Table</summary>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <p className="caption">Source: {source || "…"}</p>
+      <details className="chart__table">
+        <summary>Table</summary>
+        <table>
           <thead><tr><th align="left">Bucket</th><th align="right">Recovered</th><th align="right">Fees</th><th align="right">Settled</th><th align="right">Total</th></tr></thead>
           <tbody>
             {points.map((p) => (
@@ -121,6 +121,6 @@ export function RecoveryChart({ live }: PanelProps) {
           </tbody>
         </table>
       </details>
-    </div>
+    </Panel>
   );
 }
