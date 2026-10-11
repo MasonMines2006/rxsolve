@@ -27,6 +27,8 @@ test("scan intake offers the built-in example directly with concise copy", () =>
   expect(html).toContain("Use example CSV");
   expect(html).toContain("Choose a CSV");
   expect(html.indexOf("Use example CSV")).toBeLessThan(html.indexOf("Choose a CSV"));
+  expect(html).toContain('<button class="btn btn--ghost" type="button" aria-controls="scan-summary"');
+  expect(html).toContain('<label class="btn scan-file">Choose a CSV');
   expect(html).not.toContain("Download the example CSV");
   expect(html).not.toContain("scan-privacy");
   expect(html).not.toContain("—");
