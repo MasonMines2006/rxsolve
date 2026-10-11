@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { OpportunityScan } from "../components/scan/OpportunityScan";
-import { readyClaimIds, scanStatusPresentation } from "../lib/opportunityScan";
+import { EXAMPLE_SCANS, readyClaimIds, scanStatusPresentation } from "../lib/opportunityScan";
 
 test("scan statuses have plain-language labels and semantic tones", () => {
   expect(scanStatusPresentation("READY")).toEqual({ label: "Ready for RxSolve", tone: "good" });
@@ -21,12 +21,15 @@ test("only ready claims are staged for the next RxSolve step", () => {
   ])).toEqual(["A", "C"]);
 });
 
-test("scan intake offers the built-in example directly with concise copy", () => {
+test("scan intake offers five built-in scenarios directly with concise copy", () => {
   const html = renderToStaticMarkup(createElement(OpportunityScan));
 
-  expect(html).toContain("Use example CSV");
+  expect(EXAMPLE_SCANS).toHaveLength(5);
+  expect(new Set(EXAMPLE_SCANS.map((example) => example.id)).size).toBe(5);
+  expect(html.match(/<option/g)).toHaveLength(5);
+  expect(html).toContain("Run example CSV");
   expect(html).toContain("Choose a CSV");
-  expect(html.indexOf("Use example CSV")).toBeLessThan(html.indexOf("Choose a CSV"));
+  expect(html.indexOf("Run example CSV")).toBeLessThan(html.indexOf("Choose a CSV"));
   expect(html).toContain('<button class="btn btn--ghost" type="button" aria-controls="scan-summary"');
   expect(html).toContain('<label class="btn scan-file">Choose a CSV');
   expect(html).not.toContain("Download the example CSV");
