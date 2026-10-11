@@ -614,7 +614,7 @@ Four entities, created at boot:
 | `RXSOLVE-PLATFORM` | Collects the 25% contingency fee |
 | `PATIENT-*` | Patient accounts for terminal-flow realism |
 
-On Classic v1, logical actor IDs map to Checking-account nicknames under the synthetic `RxSolve Demo` customer. `NessieLedger` discovers existing customer/accounts before creating missing ones; each new account receives the same $100,000 sandbox opening balance as the local double. This opening balance is sandbox setup, not recovery revenue.
+On Classic v1, logical actor IDs map to Checking-account nicknames under the synthetic `RxSolve Demo` customer. `NessieLedger` discovers existing customer/accounts before creating missing ones; each new account receives the same $100,000 sandbox opening balance as the local double. This opening balance is sandbox setup, not recovery revenue. Domain values stay in dollars; the adapter sends integer cents, and `transfer` posts a withdrawal then a deposit (a failed deposit throws a half-posted error and is not retried).
 
 **Every displayed dollar is a real movement.** Remittance adjustment on approval, fee transfer on settlement. "Recovered to date" is a computed balance, not a stored counter.
 
@@ -634,7 +634,7 @@ async def settle_recovery(claim: Claim, delta: Decimal, fee_pct: float = 0.25) -
 
 > **T+0 integration check: Nessie ships in two generations.**
 >
-> - **Classic:** `nessieisreal.com`, API key as a `?key=` query parameter, money moves via `POST /transfers` or `POST /bills`.
+> - **Classic:** `nessieisreal.com`, API key as a `?key=` query parameter, money moves via `POST /accounts/{id}/withdrawals` and `/deposits` (amounts in integer cents). Classic v1 documents no transfer create route.
 > - **v2:** `/v2/accounts`, header-based authentication.
 >
 > Probe which one in the first ten minutes. If transfers are unavailable, fall back to bills for both movements.

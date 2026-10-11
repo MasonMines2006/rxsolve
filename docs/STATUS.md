@@ -13,7 +13,7 @@ Update this as work lands. Mark a ticket done when its "Done when" in `TICKETS.m
 | INF-01 | P1 | done | Nessie: classic v1 at `https://api.nessieisreal.com`; key valid (201 on a write, a fake key gets 401); `bun probe` is read-only. Photon: `bun api` logs `spectrum: iMessage connected`. Keys and Photon project id go to the group chat by hand, never the relay |
 | INF-02 | P1 | in progress | TigerData schema bootstrap and API health 200 (`db=tigerdata`) verified; `/ws/live` replays `ledger.balances`. Claim persistence across process restart remains unverified to avoid test rows in the shared DB |
 | INF-03 | P1 | done | Portal/inbox/fax doors implement the logged P2 contracts; seed expands 6 templates to 60 (18 underwater, 39 clear, 3 marginal); local HTTP integration covers all three adapters and boundary test passes |
-| INF-04 | P1 | blocked | `NessieLedger` classic v1 customer/account discovery, transfers, and balance reads have fake-HTTP tests. A synthetic E2E reached settlement but the first `/accounts/{id}/transfers` POST returned HTTP 400; read-only checks found balances unchanged. Transfer payload schema must be confirmed before another write; `local` remains default |
+| INF-04 | P1 | in progress | `NessieLedger` classic v1 customer/account discovery, balance reads, and settlement via paired `POST /accounts/{id}/withdrawals` then `/deposits` (integer cents, balances divided back to dollars) have fake-HTTP tests. The old `/transfers` POST returned HTTP 400 live; the paired path has not been verified live yet. `local` remains default |
 | INF-05 | P1 | in progress | CLEAR, UNDERWATER, and policy-exception paths pass the 60-claim local HTTP replay; deadline countdown is wired to appeal deadlines, but visual end-to-end verification remains pending |
 | INF-06 | P1 | done | Deterministic named-field denials, missing-evidence approval, and PBM_FAX deny-first/rebuttal concession implemented and tested through the local doors |
 | RES-01 | P2 | done | Specs, statutes, personas cited (NC, GA, default; CVS Caremark, Express Scripts, OptumRx). Open: CVS and Express Scripts form field labels and Express Scripts window/SLA not found in public sources; GA statute read from an older codification; TN citation not re-verified |
@@ -39,7 +39,7 @@ Update this as work lands. Mark a ticket done when its "Done when" in `TICKETS.m
 | Integration | Stubbed? | Detail |
 |---|---|---|
 | Agent model (Gemini) | no | Live-verified 2026-10-10 with `AGENT_API_KEY`: `gemini-3.8-flash` accepted; simple, nullable + enum + array schemas via `responseJsonSchema`, all three thinking levels, and PDF `inlineData` input return parsed output; an invalid key throws so callers fall back to their deterministic paths |
-| Nessie | partial | Classic v1 adapter is implemented; `LEDGER_BACKEND=local` remains the default until live transfers are verified. No live transfer was made because `NESSIE_KEY` is unset |
+| Nessie | partial | Classic v1 adapter is implemented; `LEDGER_BACKEND=local` remains the default until live paired withdrawal/deposit settlement is verified. No live write was made because `NESSIE_KEY` is unset |
 | Spectrum iMessage | partial | SDK connects with project credentials, but live sends require the pharmacist phone to be registered as a project user. Dashboard phone mock remains available; `PHARMACIST_PHONE` restricts inbound commands |
 | Spectrum WhatsApp / SMS (wholesaler) | yes | Without a delivered Photon send the wholesaler replies instantly in the channel viewer (`WHOLESALER_STUB=auto`; `silent` never replies, `manual` waits for `POST /api/dev/wholesaler-reply`). Live needs `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET` plus `WHOLESALER_CONTACT`; a failed WhatsApp send retries as SMS over the iMessage line |
 | ElevenLabs | stretch | Not on the core demo path; digest is text-only without a key. Phone negotiator (AGT-08) runs on a stub text codec without `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID`, against the in-process simulated rep (`PHONE_MODE=sim`); real telephony is out of scope, `PHONE_REP_URL` is the hook point |
@@ -50,7 +50,7 @@ Update this as work lands. Mark a ticket done when its "Done when" in `TICKETS.m
 ## Blockers
 
 - INF-02 still needs claim persistence verified across an API restart; avoid test inserts into the shared TigerData instance.
-- INF-04 Nessie account setup ran in the sandbox, but the first transfer POST returned HTTP 400 and balances stayed unchanged. Confirm the Classic v1 transfer payload before retrying any write.
+- INF-04: Classic v1 has no transfer create route (the old `/transfers` POST returned HTTP 400); transfers are now paired withdrawal + deposit in cents, and live verification is still pending.
 - AGT-07 live digest/reply checks await pharmacist-number registration in the Photon project.
 - AGT-09 live voice verification is stretch and needs an ElevenLabs key/voice ID and the registered Photon phone.
 - UI-05/06 still need the timed live rehearsal and submission assets/form work.

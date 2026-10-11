@@ -4,6 +4,8 @@
  * The logical RxSolve actors live as Checking accounts under one sandbox customer. Each account is
  * found by its nickname on startup, so repeated boots do not create duplicate customers/accounts.
  * Nessie uses the API key as a query parameter; never include the request URL in an error message.
+ * Domain values are dollars; Nessie amounts and balances are integer cents, converted at this boundary.
+ * Classic v1 has no transfer create route, so a transfer is a withdrawal followed by a deposit.
  */
 import type { Transfer } from "@rxsolve/contracts";
 import type { Ledger } from "./index";
@@ -32,7 +34,15 @@ function asObject(value: unknown): JsonObject | null {
 function unwrapObject(value: unknown): JsonObject | null {
   const object = asObject(value);
   if (!object) return null;
-  return asObject(object.data) ?? asObject(object.customer) ?? asObject(object.account) ?? object;
+  return asObject(object.objectCreated) ?? asObject(object.data) ?? asObject(object.customer)
+    ?? asObject(object.account) ?? object;
+}
+
+/** Converts dollars to integer cents, or returns null when the value is not a positive whole-cent amount. */
+function toCents(dollars: number): number | null {
+  if (!Number.isFinite(dollars) || dollars <= 0) return null;
+  const value = Math.round(dollars * 100);
+  return value > 0 && Math.abs(dollars * 100 - value) < 1e-6 ? value : null;
 }
 
 function asRecords(value: unknown): JsonObject[] {
@@ -170,7 +180,7 @@ export class NessieLedger implements Ledger {
             type: "Checking",
             nickname: logicalId,
             rewards: 0,
-            balance: this.openingBalance,
+            balance: Math.round(this.openingBalance * 100),
           }),
         });
         remoteId = entityId(created);
@@ -193,25 +203,32 @@ export class NessieLedger implements Ledger {
     const from = this.accountIds.get(transfer.from);
     const to = this.accountIds.get(transfer.to);
     if (!from || !to) throw new Error(`Nessie account mapping missing for ${!from ? transfer.from : transfer.to}`);
-    const amount = Math.round(transfer.amount * 100) / 100;
-    if (!Number.isFinite(amount) || amount <= 0) throw new Error("Nessie transfer amount must be a positive finite dollar amount");
+    const amountCents = toCents(transfer.amount);
+    if (amountCents === null) throw new Error("Nessie transfer amount must be a positive finite dollar amount in whole cents");
     if (transfer.kind === "opening") throw new Error("Nessie opening balances are created with their accounts");
 
-    const result = await this.request(`/accounts/${encodeURIComponent(from)}/transfers`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        medium: "balance",
-        payee_id: to,
-        amount,
-        transaction_date: new Date().toISOString().slice(0, 10),
-        status: "completed",
-        description: transfer.memo ?? `${transfer.kind}: ${transfer.from} to ${transfer.to}`,
-      }),
+    const payload = JSON.stringify({
+      medium: "balance",
+      transaction_date: new Date().toISOString().slice(0, 10),
+      amount: amountCents,
+      description: transfer.memo ?? `${transfer.kind}: ${transfer.from} to ${transfer.to}`,
     });
-    const id = entityId(result);
-    if (!id) throw new Error("Nessie transfer response did not include a transaction id");
-    return id;
+    const init = { method: "POST", headers: { "content-type": "application/json" }, body: payload };
+
+    const withdrawal = await this.request(`/accounts/${encodeURIComponent(from)}/withdrawals`, init);
+    const withdrawalId = entityId(withdrawal);
+    if (!withdrawalId) throw new Error("Nessie withdrawal response did not include a transaction id");
+    let depositId: string | null;
+    try {
+      depositId = entityId(await this.request(`/accounts/${encodeURIComponent(to)}/deposits`, init));
+      if (!depositId) throw new Error("deposit response did not include a transaction id");
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "unknown error";
+      throw new Error(
+        `Nessie transfer half-posted: withdrawal ${withdrawalId} of ${amountCents} cents from ${transfer.from} succeeded but the deposit to ${transfer.to} failed (${reason}); manual reconciliation required`,
+      );
+    }
+    return `${withdrawalId}:${depositId}`;
   }
 
   async balances(): Promise<Record<string, number>> {
@@ -220,7 +237,7 @@ export class NessieLedger implements Ledger {
       const account = unwrapObject(await this.request(`/accounts/${encodeURIComponent(remoteId)}`));
       const balance = Number(account?.balance);
       if (!Number.isFinite(balance)) throw new Error(`Nessie account ${logicalId} returned an invalid balance`);
-      return [logicalId, Math.round(balance * 100) / 100] as const;
+      return [logicalId, balance / 100] as const;
     }));
     return Object.fromEntries(entries);
   }

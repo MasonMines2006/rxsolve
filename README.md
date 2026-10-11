@@ -48,7 +48,7 @@ cashier (dashboard) --B1--> pbm-sim /switch/claim --tee--> api /api/feed/claim
 |---|---|
 | PBMs (portal, email, fax) | Mocked by design in `apps/pbm-sim`, modeled on public CVS Caremark, Express Scripts and OptumRx appeal procedures. No real logos. |
 | Fax transport | Mocked inside the PBM Sim |
-| Nessie | Classic v1 adapter is implemented; live ledger requires `LEDGER_BACKEND=nessie` and `NESSIE_KEY`. The local ledger remains the default until real transfers are verified |
+| Nessie | Classic v1 adapter is implemented; live ledger requires `LEDGER_BACKEND=nessie` and `NESSIE_KEY`. The local ledger remains the default until live paired withdrawal/deposit settlement is verified |
 | TigerData | Live when `DATABASE_URL` is set (hypertables + a continuous aggregate for the recovery chart); otherwise an in-memory store |
 | Photon Spectrum (iMessage) | Live when `PHOTON_PROJECT_ID`/`PHOTON_PROJECT_SECRET` are set and the pharmacist phone is registered as a project user; otherwise the dashboard phone mock shows every message and its reply box drives the same commands (APPROVE, SKIP, DETAILS, PAUSE, RESUME, LIMIT) |
 | WhatsApp / SMS to wholesaler | Stubbed unless Photon is connected with `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET` and `WHOLESALER_CONTACT`: the wholesaler replies instantly in the channel viewer (`WHOLESALER_STUB=silent` makes it stay quiet to show the abandon path) |

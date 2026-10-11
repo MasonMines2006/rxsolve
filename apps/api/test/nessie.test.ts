@@ -11,7 +11,8 @@ function fakeNessie() {
   const requests: { method: string; path: string; key: string | null; body: Json | null }[] = [];
   let customerSequence = 0;
   let accountSequence = 0;
-  let transferSequence = 0;
+  let failDeposits = false;
+  let transactionSequence = 0;
 
   const fetcher: Fetcher = async (input, init = {}) => {
     const url = new URL(String(input));
@@ -43,20 +44,20 @@ function fakeNessie() {
       return account ? Response.json(account) : Response.json({ message: "unknown account" }, { status: 404 });
     }
 
-    const transferPath = path.match(/^\/accounts\/([^/]+)\/transfers$/);
-    if (transferPath && method === "POST") {
-      const from = accounts.get(transferPath[1]!);
-      const to = accounts.get(String(body?.payee_id));
-      if (!from || !to) return Response.json({ message: "unknown account" }, { status: 404 });
+    const txPath = path.match(/^\/accounts\/([^/]+)\/(withdrawals|deposits)$/);
+    if (txPath && method === "POST") {
+      const account = accounts.get(txPath[1]!);
+      if (!account) return Response.json({ message: "unknown account" }, { status: 404 });
+      if (failDeposits && txPath[2] === "deposits") return Response.json({ message: "deposit rejected" }, { status: 500 });
       const amount = Number(body?.amount);
-      from.balance = Number(from.balance) - amount;
-      to.balance = Number(to.balance) + amount;
-      return Response.json({ _id: `transfer-${++transferSequence}` }, { status: 201 });
+      account.balance = Number(account.balance) + (txPath[2] === "withdrawals" ? -amount : amount);
+      const id = `${txPath[2] === "withdrawals" ? "wd" : "dep"}-${++transactionSequence}`;
+      return Response.json({ code: 201, message: "Created", objectCreated: { _id: id } }, { status: 201 });
     }
     return Response.json({ message: `unexpected ${method} ${path}` }, { status: 404 });
   };
 
-  return { fetcher, requests, accounts, customers };
+  return { fetcher, requests, accounts, customers, failDeposits: (v: boolean) => { failDeposits = v; } };
 }
 
 const ids = ["PH-MEADOWBROOK", "PBM-PORTAL", "RXSOLVE-PLATFORM"];
@@ -78,7 +79,7 @@ test("classic v1 account setup is idempotent and transfers/balances use mapped a
     from: "PBM-PORTAL", to: "PH-MEADOWBROOK", amount: 6.4,
     kind: "remittance_adjustment", memo: "REM-1 remittance adjustment RXS-1",
   };
-  expect(await ledger.transfer(transfer)).toBe("transfer-1");
+  expect(await ledger.transfer(transfer)).toBe("wd-1:dep-2");
   expect(await ledger.balances()).toEqual({
     "PH-MEADOWBROOK": 100006.4,
     "PBM-PORTAL": 99993.6,
@@ -93,8 +94,11 @@ test("classic v1 account setup is idempotent and transfers/balances use mapped a
   expect(fake.requests.filter((request) => request.method === "POST" && request.path === "/customers")).toHaveLength(1);
   expect(fake.requests.filter((request) => request.method === "POST" && request.path.endsWith("/accounts"))).toHaveLength(3);
   expect(fake.requests.every((request) => request.key === "test-key")).toBe(true);
-  const post = fake.requests.find((request) => request.path.endsWith("/transfers"))!;
-  expect(post.body).toMatchObject({ medium: "balance", payee_id: "account-1", amount: 6.4, status: "completed" });
+  const posts = fake.requests.filter((request) => /\/(withdrawals|deposits)$/.test(request.path));
+  expect(posts.map((request) => request.path)).toEqual(["/accounts/account-2/withdrawals", "/accounts/account-1/deposits"]);
+  expect(posts[0]!.body).toMatchObject({ medium: "balance", amount: 640, description: "REM-1 remittance adjustment RXS-1" });
+  expect(posts[0]!.body?.transaction_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  expect(fake.requests.some((request) => request.path.endsWith("/transfers"))).toBe(false);
 });
 
 test("a missing key fails before making a Nessie request", async () => {
@@ -144,7 +148,53 @@ test("invalid transfer amounts are rejected before posting", async () => {
   const fake = fakeNessie();
   const ledger = new NessieLedger(options(fake));
   await ledger.ensureAccounts(ids);
-  const postsBefore = fake.requests.filter((request) => request.path.endsWith("/transfers")).length;
-  await expect(ledger.transfer({ from: "PBM-PORTAL", to: "PH-MEADOWBROOK", amount: 0, kind: "remittance_adjustment" })).rejects.toThrow("positive finite");
-  expect(fake.requests.filter((request) => request.path.endsWith("/transfers"))).toHaveLength(postsBefore);
+  const base = { from: "PBM-PORTAL", to: "PH-MEADOWBROOK", kind: "remittance_adjustment" } as const;
+  for (const amount of [0, -1, Number.NaN, Number.POSITIVE_INFINITY, 1.005, 0.001]) {
+    await expect(ledger.transfer({ ...base, amount })).rejects.toThrow("positive finite");
+  }
+  expect(fake.requests.filter((request) => /\/(withdrawals|deposits)$/.test(request.path))).toHaveLength(0);
+});
+
+test("opening balances are sent as integer cents and balances return dollars", async () => {
+  const fake = fakeNessie();
+  const ledger = new NessieLedger({ ...options(fake), openingBalance: 100_000 });
+  await ledger.ensureAccounts(["PH-MEADOWBROOK"]);
+  const create = fake.requests.find((request) => request.method === "POST" && request.path.endsWith("/accounts"))!;
+  expect(create.body?.balance).toBe(10_000_000);
+  expect(await ledger.balances()).toEqual({ "PH-MEADOWBROOK": 100_000 });
+});
+
+test("fractional cents survive a settlement-shaped transfer pair", async () => {
+  const fake = fakeNessie();
+  const ledger = new NessieLedger(options(fake));
+  await ledger.ensureAccounts(ids);
+  const fee = Math.round(12.34 * 0.25 * 100) / 100;
+  await ledger.transfer({ from: "PBM-PORTAL", to: "PH-MEADOWBROOK", amount: 12.34, kind: "remittance_adjustment" });
+  await ledger.transfer({ from: "PH-MEADOWBROOK", to: "RXSOLVE-PLATFORM", amount: fee, kind: "contingency_fee" });
+  const amounts = fake.requests.filter((request) => request.path.endsWith("/withdrawals")).map((request) => request.body?.amount);
+  expect(amounts).toEqual([1234, Math.round(fee * 100)]);
+  expect(await ledger.balances()).toEqual({
+    "PH-MEADOWBROOK": (10_000_000 + 1234 - Math.round(fee * 100)) / 100,
+    "PBM-PORTAL": (10_000_000 - 1234) / 100,
+    "RXSOLVE-PLATFORM": (10_000_000 + Math.round(fee * 100)) / 100,
+  });
+});
+
+test("a failed deposit after a successful withdrawal names the half-posted state and is not retried", async () => {
+  const fake = fakeNessie();
+  const ledger = new NessieLedger(options(fake));
+  await ledger.ensureAccounts(ids);
+  fake.failDeposits(true);
+  const failure = await ledger.transfer({
+    from: "PH-MEADOWBROOK", to: "RXSOLVE-PLATFORM", amount: 1.6, kind: "contingency_fee",
+  }).catch((error: unknown) => error);
+  expect(failure).toBeInstanceOf(Error);
+  const message = (failure as Error).message;
+  expect(message).toContain("half-posted");
+  expect(message).toContain("PH-MEADOWBROOK");
+  expect(message).toContain("160 cents");
+  expect(message).toContain("wd-1");
+  expect(message).not.toContain("test-key");
+  expect(fake.requests.filter((request) => request.path.endsWith("/withdrawals"))).toHaveLength(1);
+  expect(fake.requests.filter((request) => request.path.endsWith("/deposits"))).toHaveLength(1);
 });
