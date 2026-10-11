@@ -22,8 +22,16 @@ export const CANONICAL_HEADERS = [
   "appeal_deadline",
 ] as const;
 
+/**
+ * Columns a file may leave out. The scan does not need them, but the handoff into the claim
+ * pipeline does (scan-handoff.ts). They are matched by name only and never sent to the model.
+ */
+export const OPTIONAL_HEADERS = ["quantity", "rx_number", "plan"] as const;
+
 export type CanonicalHeader = (typeof CANONICAL_HEADERS)[number];
+export type OptionalHeader = (typeof OPTIONAL_HEADERS)[number];
 export type HeaderMap = Partial<Record<CanonicalHeader, string>>;
+type OptionalHeaderMap = Partial<Record<OptionalHeader, string>>;
 export type SuggestedHeaderMapping = { source: string; target: CanonicalHeader };
 export type ScanStatus = "READY" | "PAID_FAIRLY" | "NEEDS_REVIEW" | "MISSING_DATA" | "EXPIRED";
 
@@ -39,6 +47,9 @@ export type OpportunityClaim = {
   invoice_number: string | null;
   invoice_date: string | null;
   appeal_deadline: string;
+  quantity: number | null;
+  rx_number: string | null;
+  plan: string | null;
   shortfall: number;
   status: ScanStatus;
   reason: string;
@@ -83,6 +94,12 @@ const HEADER_ALIASES: Record<CanonicalHeader, string[]> = {
   invoice_number: ["invoicenumber", "invoice", "invoiceref"],
   invoice_date: ["invoicedate", "invoiceissued"],
   appeal_deadline: ["appealdeadline", "appealby", "filebefore"],
+};
+
+const OPTIONAL_HEADER_ALIASES: Record<OptionalHeader, string[]> = {
+  quantity: ["quantity", "qty", "quantitydispensed"],
+  rx_number: ["rxnumber", "rxno", "prescriptionnumber"],
+  plan: ["plan", "planname"],
 };
 
 const normalized = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -157,6 +174,19 @@ function deterministicHeaderMap(headers: string[]): HeaderMap {
   return result;
 }
 
+/** Matches optional columns among the headers the required columns did not already claim. */
+function optionalHeaderMap(headers: string[], required: HeaderMap): OptionalHeaderMap {
+  const taken = new Set(Object.values(required));
+  const result: OptionalHeaderMap = {};
+  for (const header of headers) {
+    if (taken.has(header)) continue;
+    const key = normalized(header);
+    const target = OPTIONAL_HEADERS.find((candidate) => OPTIONAL_HEADER_ALIASES[candidate].includes(key));
+    if (target && result[target] === undefined) result[target] = header;
+  }
+  return result;
+}
+
 export function applySuggestedHeaderMappings(
   headers: string[],
   current: HeaderMap,
@@ -209,6 +239,15 @@ function nonNegativeAmount(record: Record<string, string>, source: string, label
   return money(value);
 }
 
+function optionalQuantity(record: Record<string, string>, source: string | undefined): number | null {
+  if (source === undefined) return null;
+  const raw = optionalText(record, source);
+  if (raw === null) return null;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value <= 0) throw new Error("Quantity must be a positive number");
+  return value;
+}
+
 function isoDate(record: Record<string, string>, source: string, label: string): string {
   const value = requiredText(record, source, label);
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
@@ -249,10 +288,11 @@ export async function scanOpportunityCsv(csv: string, options: ScanOptions = {})
   if (new Set(headers).size !== headers.length) throw new Error("CSV headers must be unique");
 
   let mappedHeaders = deterministicHeaderMap(headers);
+  const optionalHeaders = optionalHeaderMap(headers, mappedHeaders);
   let mode: OpportunityScanResult["parser"]["mode"] = "deterministic";
   let missing = requiredMissing(mappedHeaders);
   if (missing.length && options.suggestHeaders) {
-    const knownSources = new Set(Object.values(mappedHeaders));
+    const knownSources = new Set([...Object.values(mappedHeaders), ...Object.values(optionalHeaders)]);
     const unknownHeaders = headers.filter((header) => !knownSources.has(header));
     const suggestions = await options.suggestHeaders(unknownHeaders);
     mappedHeaders = applySuggestedHeaderMappings(headers, mappedHeaders, suggestions);
@@ -285,6 +325,9 @@ export async function scanOpportunityCsv(csv: string, options: ScanOptions = {})
       invoice_number: invoiceNumber,
       invoice_date: invoiceDate,
       appeal_deadline: appealDeadline,
+      quantity: optionalQuantity(record, optionalHeaders.quantity),
+      rx_number: optionalHeaders.rx_number === undefined ? null : optionalText(record, optionalHeaders.rx_number),
+      plan: optionalHeaders.plan === undefined ? null : optionalText(record, optionalHeaders.plan),
       shortfall,
       status: verdict.status,
       reason: verdict.reason,

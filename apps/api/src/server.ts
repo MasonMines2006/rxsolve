@@ -10,6 +10,7 @@ import { emitBalances } from "./ledger/settle";
 import { startSpectrum } from "./messaging/spectrum";
 import { coreRoutes } from "./routes/core";
 import { handleInbound, messagingRoutes } from "./routes/messaging";
+import { scanRoutes } from "./routes/scan";
 import { AUDIO_DIR } from "./voice";
 
 export async function bootstrap({ spectrum = true } = {}) {
@@ -27,6 +28,7 @@ export function startApi(port = config.port) {
     routes: {
       ...coreRoutes,
       ...messagingRoutes,
+      ...scanRoutes,
       "/audio/:name": (req) => new Response(Bun.file(`${AUDIO_DIR}/${req.params.name}`)),
     },
     fetch(req, srv) {
