@@ -116,3 +116,20 @@ Validation results:
 - All four workspaces passed type checking.
 
 This evidence proves the implementation follows the documented rules and responds to input changes. It does not prove those rules are sufficient for every real PBM contract or jurisdiction; that policy should be reviewed with a pharmacy reimbursement specialist before production use.
+
+## Review queue and policy preview
+
+The "Stage" step now opens a review queue that lists `READY` and `NEEDS_REVIEW` claims together, with a dollar limit that previews the standing authorization. Ready claims start selected; needs-review claims are opt-in.
+
+RED: seven tests were added to `apps/dashboard/test/opportunityScan.test.ts` before any implementation and failed with `Cannot find module '../components/scan/PolicySetup'`.
+
+GREEN: the helpers in `apps/dashboard/lib/opportunityScan.ts` (`reviewQueue`, `toggleSelected`, `parseAutoFileMax`, `previewPolicy`) and `apps/dashboard/components/scan/PolicySetup.tsx` made them pass. One assertion was corrected to match the rendered markup, where the count sits in its own `<b>` element.
+
+Validation results:
+
+- The focused dashboard suite passed 11 tests with 52 assertions.
+- The full repository passed 170 tests with 955 assertions across 26 files.
+- All four workspaces passed type checking.
+- Browser check on the mixed example: the queue held 6 claims with 5 preselected. Adding HIST-003 gave 5 auto-file ($60.95) and 1 waiting ($0.30). A $5 limit moved three claims to waiting (2 auto-file at $7.95, 4 waiting at $53.30). An invalid limit showed the error text and hid the totals. No console errors.
+
+Not covered: the preview is not compared against the API's stored policy, and nothing is handed to the live claim pipeline.

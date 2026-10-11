@@ -22,7 +22,7 @@ Or one process per terminal: `bun api`, `bun sim`, `bun dash`. Then `bun seed RX
 
 ## Try the recovery opportunity scan
 
-Open [http://localhost:3000/scan](http://localhost:3000/scan), choose one of five synthetic scenarios, and select **Run example CSV**. The examples cover mixed outcomes, high recovery, missing evidence, deadline risk, and alternate column names. RxSolve measures historical shortfalls, separates ready claims from exceptions, and stages only the ready claims for policy review. Staging does not persist the upload or file an appeal.
+Open [http://localhost:3000/scan](http://localhost:3000/scan), choose one of five synthetic scenarios, and select **Run example CSV**. The examples cover mixed outcomes, high recovery, missing evidence, deadline risk, and alternate column names. RxSolve measures historical shortfalls and separates ready claims from exceptions. **Review N claims** then opens a review queue of ready and needs-review claims with an auto-file dollar limit, showing which claims would file on their own and which would wait for approval. The queue is a preview: it does not persist the upload, save a policy, or file an appeal.
 
 For unfamiliar CSV formats, a configured model may map unknown column names to RxSolve's fixed eleven-field vocabulary. Only header names are sent to the model. CSV rows, dollar amounts, evidence checks, deadlines, classifications, and totals remain deterministic and are validated again after mapping.
 

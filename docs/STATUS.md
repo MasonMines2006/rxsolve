@@ -35,6 +35,13 @@ Update this as work lands. Mark a ticket done when its "Done when" in `TICKETS.m
 | UI-07 | P3 | in progress | Dark/light/Aero token skins and persistent accessible switcher implemented; workspace typecheck/dashboard build pass, visual contrast check across all panels/devices pending |
 | UI-08 | P3 | in progress | Status screen artifacts drawers, presenter hold controls (PBM release, wholesaler reply, release all) and the unified cashier claim list implemented; unit, typecheck and isolated build pass, mocked-WS browser check done; live check against the PBM Sim release door pending until that door lands |
 
+## Off-ticket work
+
+| Work | Owner | Status | Notes |
+|---|---|---|---|
+| Historical opportunity scan (`/scan`, `POST /api/opportunity-scan`) | MasonMines2006 | done, not pushed | Deterministic CSV triage with five example files; evidence in `docs/testing/opportunity-scan.tdd.md`. Touches `routes/core.ts` (P1) and the dashboard (P3); owner sign-off still needed before pushing |
+| Scan review queue and policy preview | MasonMines2006 | done, not committed | Browser-only preview of the auto-file limit over `READY` and `NEEDS_REVIEW` claims. Handoff of selected claims into the live pipeline is not built: scan rows lack the NCPDP message, plan and `patient_ref` a `Claim` needs |
+
 ## Stubbed integrations
 
 | Integration | Stubbed? | Detail |
