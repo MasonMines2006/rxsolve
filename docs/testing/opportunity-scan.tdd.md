@@ -80,3 +80,17 @@ Browser QA confirmed that both controls are centered, **Use example CSV** loads 
 A second follow-up found that the example request completed, but its results opened below the mobile viewport, making the button appear inactive. RED commit `fd50d11` defined the intended action hierarchy and result target. GREEN commit `ba9bc1d` makes **Choose a CSV** the primary control, marks the example button as controlling `scan-summary`, and scrolls the completed summary into view.
 
 The focused suite passed with 3 tests and 14 assertions at 82.47% aggregate line coverage. Browser QA clicked the example from a fresh page and landed on the $60.95 recovery summary with no console warnings or errors. The complete repository passed with 156 tests and 788 assertions, and all four workspaces passed type checking.
+
+## Selectable scenarios and progress follow-up
+
+The scan now offers five synthetic examples: mixed outcomes, high recovery, missing evidence, deadline risk, and alternate column names. Each remains a real CSV passed through the same API as a user upload. No scenario contains preset result totals.
+
+RED commits `dda7fbd` and `da255a7` defined five unique selectable examples and a 1.2-second minimum feedback window. GREEN commit `29dc6e5` added the files, selector, and animated progress bar. The minimum is skipped when real processing already takes longer.
+
+Validation results:
+
+- All five CSVs parsed successfully through `scanOpportunityCsv` and produced distinct calculated summaries.
+- The focused dashboard suite passed 4 tests and 20 assertions at 83.90% aggregate line coverage.
+- The full repository passed 157 tests and 794 assertions.
+- All four workspaces passed type checking.
+- Browser QA selected and ran the high-recovery example, showed the progress state, then calculated $290.50 ready to recover across six claims. No browser warnings or errors were recorded.
