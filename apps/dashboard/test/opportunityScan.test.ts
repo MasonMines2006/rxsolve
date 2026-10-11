@@ -3,9 +3,13 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { OpportunityScan } from "../components/scan/OpportunityScan";
 import { PolicySetup } from "../components/scan/PolicySetup";
+import { ScanHandoff } from "../components/scan/ScanHandoff";
 import {
+  buildHandoffExampleCsv,
   DEFAULT_AUTO_FILE_MAX,
   EXAMPLE_SCANS,
+  handoffBlocker,
+  MAX_HANDOFF_CLAIMS,
   MINIMUM_SCAN_DURATION_MS,
   parseAutoFileMax,
   previewPolicy,
@@ -39,12 +43,13 @@ test("scan feedback lasts long enough to be visible without delaying slow work",
   expect(remainingScanDelay(1_000, 2_500)).toBe(0);
 });
 
-test("scan intake offers five built-in scenarios directly with concise copy", () => {
+test("scan intake offers six built-in scenarios directly with concise copy", () => {
   const html = renderToStaticMarkup(createElement(OpportunityScan));
 
-  expect(EXAMPLE_SCANS).toHaveLength(5);
-  expect(new Set(EXAMPLE_SCANS.map((example) => example.id)).size).toBe(5);
-  expect(html.match(/<option/g)).toHaveLength(5);
+  expect(EXAMPLE_SCANS).toHaveLength(6);
+  expect(new Set(EXAMPLE_SCANS.map((example) => example.id)).size).toBe(6);
+  expect(EXAMPLE_SCANS.filter((example) => example.path === null).map((example) => example.id)).toEqual(["handoff"]);
+  expect(html.match(/<option/g)).toHaveLength(6);
   expect(html).toContain("Run example CSV");
   expect(html).toContain("Choose a CSV");
   expect(html.indexOf("Run example CSV")).toBeLessThan(html.indexOf("Choose a CSV"));
@@ -116,14 +121,48 @@ test("policy preview ignores unselected claims and claims outside the review que
 });
 
 test("policy setup preselects ready claims and previews the default limit without filing", () => {
-  const html = renderToStaticMarkup(createElement(PolicySetup, { claims: [...QUEUE_CLAIMS] }));
+  const html = renderToStaticMarkup(createElement(PolicySetup, { claims: [...QUEUE_CLAIMS], csv: "csv text" }));
 
-  expect(html.match(/type="checkbox"/g)).toHaveLength(3);
+  // One checkbox per queued claim, plus the unticked handoff confirmation.
+  expect(html.match(/aria-label="Include /g)).toHaveLength(3);
+  expect(html.match(/type="checkbox"/g)).toHaveLength(4);
   expect(html.match(/checked=""/g)).toHaveLength(2);
   expect(html).toContain('value="100"');
   expect(html).toContain("<b>1 claim</b> would file automatically ($6.40)");
   expect(html).toContain("<b>1 claim</b> would wait for your approval ($137.60)");
-  expect(html).toContain("Nothing is filed from this preview");
+  expect(html).toContain("Nothing is filed until you send claims to RxSolve");
   expect(html).not.toContain("Montelukast");
+  expect(html).not.toContain("—");
+});
+
+// --- Handoff to the claim pipeline -------------------------------------------------------------
+
+test("the handoff example is built around today so its claims are inside the appeal window", () => {
+  const lines = buildHandoffExampleCsv(new Date("2026-10-12T15:00:00Z")).split("\n");
+
+  expect(lines[0]).toBe("Claim ID,Fill Date,NDC,Drug,PBM,State,Total Paid,Acquisition Cost,Invoice Number,Invoice Date,Appeal Deadline,Quantity,Rx Number,Plan");
+  expect(lines).toHaveLength(7);
+  expect(lines.slice(1).every((line) => line.split(",")[1] === "2026-10-11")).toBe(true);
+  expect(lines.slice(1).every((line) => line.split(",")[10] === "2026-10-22")).toBe(true);
+  expect(lines.slice(1).map((line) => line.split(",")[0])).toEqual(["HAND-001", "HAND-002", "HAND-003", "HAND-004", "HAND-005", "HAND-006"]);
+});
+
+test("the send button explains what is still missing, in order", () => {
+  expect(MAX_HANDOFF_CLAIMS).toBe(25);
+  expect(handoffBlocker({ selectedCount: 0, autoFileMax: 100, confirmed: true })).toBe("Select at least one claim.");
+  expect(handoffBlocker({ selectedCount: 26, autoFileMax: 100, confirmed: true })).toBe("Send 25 claims or fewer at a time.");
+  expect(handoffBlocker({ selectedCount: 2, autoFileMax: null, confirmed: true })).toBe("Enter a valid dollar limit.");
+  expect(handoffBlocker({ selectedCount: 2, autoFileMax: 100, confirmed: false })).toBe("Tick the box to confirm.");
+  expect(handoffBlocker({ selectedCount: 2, autoFileMax: 100, confirmed: true })).toBeNull();
+});
+
+test("the handoff control starts unconfirmed and says plainly that it files appeals", () => {
+  const html = renderToStaticMarkup(createElement(ScanHandoff, { csv: "csv text", selectedIds: ["A", "C"], autoFileMax: 100 }));
+
+  expect(html).toContain("Send 2 claims to RxSolve");
+  expect(html).toContain("disabled=\"\"");
+  expect(html).toContain("This saves $100.00 as your auto-file limit and can file real appeals.");
+  expect(html).toContain("Tick the box to confirm.");
+  expect(html).not.toContain("checked=\"\"");
   expect(html).not.toContain("—");
 });
