@@ -12,7 +12,7 @@ export function LedgerPanel({ live }: PanelProps) {
           <p>Recovered to date <strong className="money">{usd(l.recovered_to_date)}</strong> · fees <span className="money">{usd(l.fees_to_date)}</span></p>
           <ul className="plain">
             {Object.entries(l.balances).map(([acct, bal]) => (
-              <li key={acct}>{acct} <span className="money" style={{ float: "right" }}>{usd(bal)}</span></li>
+              <li key={acct}>{acct} <span className="money" style={{ float: "right" }}>{typeof bal === "number" && Number.isFinite(bal) ? usd(bal) : "—"}</span></li>
             ))}
           </ul>
         </>
