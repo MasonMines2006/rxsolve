@@ -10,7 +10,8 @@
       "Bash(python3 *coordinator/client.py subscriptions*)",
       "Bash(COORDINATOR_URL=* python3 *coordinator/client.py *)",
       "Bash(python3 *coordinator/serve.py --status*)",
-      "Bash(curl -X POST localhost:8000/api/digest:*)"
+      "Bash(curl -X POST localhost:8000/api/digest:*)",
+      "Bash(curl -s -X POST localhost:8000/api/digest*)"
     ]
   },
   "autoMode": {
