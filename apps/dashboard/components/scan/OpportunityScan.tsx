@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Panel } from "@/components/ui/Panel";
 import {
   readyClaimIds,
@@ -11,11 +11,16 @@ import {
 const usd = (value: number) => value.toLocaleString("en-US", { style: "currency", currency: "USD" });
 
 export function OpportunityScan() {
+  const summaryRef = useRef<HTMLElement>(null);
   const [result, setResult] = useState<OpportunityScanResult | null>(null);
   const [sourceName, setSourceName] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [staged, setStaged] = useState(false);
+
+  useEffect(() => {
+    if (result) summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [result]);
 
   async function analyze(csv: string, name: string) {
     setPending(true);
@@ -75,10 +80,16 @@ export function OpportunityScan() {
             <p className="scan-copy">Try the example file or choose a pharmacy claims export. RxSolve checks the shortfall, evidence, and filing deadline for every claim.</p>
           </div>
           <div className="scan-actions">
-            <button className="btn" type="button" onClick={() => void analyzeExample()} disabled={pending}>
+            <button
+              className="btn btn--ghost"
+              type="button"
+              aria-controls="scan-summary"
+              onClick={() => void analyzeExample()}
+              disabled={pending}
+            >
               {pending ? "Checking claims..." : "Use example CSV"}
             </button>
-            <label className="btn btn--ghost scan-file">
+            <label className="btn scan-file">
               Choose a CSV
               <input
                 type="file"
@@ -94,7 +105,7 @@ export function OpportunityScan() {
 
       {result && (
         <>
-          <section className="scan-summary" aria-label="Opportunity summary">
+          <section id="scan-summary" ref={summaryRef} className="scan-summary" aria-label="Opportunity summary" aria-live="polite">
             <div className="scan-metric scan-metric--hero">
               <span>Ready to recover</span>
               <strong>{usd(result.summary.ready_to_recover)}</strong>
