@@ -11,9 +11,7 @@ import { DeliveryChip } from "./ExchangePanel";
 import { groupExchange } from "@/lib/exchangeSteps";
 import { usd } from "@/components/panels/types";
 import type { ArtifactItem } from "@/lib/artifacts";
-import type { HoldControl } from "@/lib/holds";
 import { ArtifactsDrawer } from "./ArtifactsDrawer";
-import { HoldControls } from "./HoldControls";
 
 const CHIP_SLOT = 40;
 const LINK_STUB = 17;
@@ -28,7 +26,6 @@ type Props = {
   view: ClaimView;
   now: number;
   artifacts?: Partial<Record<NodeId, ArtifactItem[]>>;
-  control?: HoldControl | null;
 };
 
 export function StatusTree(props: Props) {
@@ -136,7 +133,7 @@ function Chip({ node, status, parent }: { node: TreeNode; status: NodeStatus; pa
 
 type Sibs = { parent: NodeId; above: TreeNode[]; below: TreeNode[] };
 
-function Node({ node, model, statuses, view, now, artifacts, control, sibs }: Props & { node: TreeNode; sibs?: Sibs }) {
+function Node({ node, model, statuses, view, now, artifacts, sibs }: Props & { node: TreeNode; sibs?: Sibs }) {
   const status = statuses[node.id] ?? "pending";
   const ms = model.nodeMs[node.id];
   const isActive = status === "active";
@@ -145,7 +142,7 @@ function Node({ node, model, statuses, view, now, artifacts, control, sibs }: Pr
   const end = node.end && status !== "excluded" ? ` tnode--end-${node.end}` : "";
   const fork = forkOf(node.children ?? [], statuses, model.rounds[0]?.nodes ?? []);
   const rest = fork.main ? [] : fork.chips;
-  const shared = { model, statuses, view, now, artifacts, control };
+  const shared = { model, statuses, view, now, artifacts };
   // Taken siblings other than the main one stay on the path as lit chips; their detail lives in the round chains.
   const chipFor = (parent: NodeId) => (c: TreeNode) => <Chip key={c.id} node={c} status={statuses[c.id] ?? "pending"} parent={parent} />;
 
@@ -166,7 +163,6 @@ function Node({ node, model, statuses, view, now, artifacts, control, sibs }: Pr
           {detail ? <small className="tnode__detail">{detail}</small> : null}
           {node.loopTo && <small className="tnode__detail muted">Loops back to: {node.loopTo}</small>}
           <Extras id={node.id} model={model} view={view} />
-          {isActive && control && <HoldControls key={`${node.id}-${control.kind}`} control={control} />}
           {status !== "excluded" && status !== "pending" && artifacts?.[node.id] && <ArtifactsDrawer items={artifacts[node.id]!} />}
         </div>
       </div>

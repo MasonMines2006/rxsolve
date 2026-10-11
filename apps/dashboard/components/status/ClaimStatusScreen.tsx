@@ -7,7 +7,6 @@ import { usd } from "@/components/panels/types";
 import { Panel } from "@/components/ui/Panel";
 import { Pill } from "@/components/ui/Pill";
 import { nodeArtifacts } from "@/lib/artifacts";
-import { holdControl } from "@/lib/holds";
 import { doorWord, stageTone, statusSentence } from "@/lib/claims";
 import { evidenceChecks, probeNames } from "@/lib/evidenceChecks";
 import { useArtifactProbes } from "./useArtifactProbes";
@@ -49,7 +48,6 @@ export function ClaimStatusScreen({ claimId }: { claimId: string }) {
   const artifacts = useMemo(() => (model && view ? nodeArtifacts(model, view, live.messages) : undefined), [model, view, live.messages]);
   const exchange = useMemo(() => exchangeFor(claimId, live.messages, live.phone), [claimId, live.messages, live.phone]);
   const probes = useArtifactProbes(view ? probeNames(view) : []);
-  const control = useMemo(() => (model && view ? holdControl(model, view, model.wholesaler) : null), [model, view]);
 
   return (
     <div className="dashboard-shell">
@@ -98,7 +96,7 @@ export function ClaimStatusScreen({ claimId }: { claimId: string }) {
 
             <div className="status-grid">
               <Panel id="status-tree" title="Decision tree" aside="taken path lit, other branches dimmed">
-                <StatusTree model={model} statuses={statuses} view={view} now={now} artifacts={artifacts} control={control} />
+                <StatusTree model={model} statuses={statuses} view={view} now={now} artifacts={artifacts} />
               </Panel>
               <section className="panel panel--stack" aria-labelledby="status-path-title">
                 <details className="path-disclosure">

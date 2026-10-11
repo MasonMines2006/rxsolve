@@ -1,6 +1,5 @@
 import { Hero } from "@/components/Hero";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
-import { ReleaseAll } from "@/components/status/HoldControls";
 import type { PanelProps } from "@/components/panels/types";
 
 function Logo() {
@@ -30,7 +29,6 @@ export function AppHeader({ live }: PanelProps) {
           {live.connected ? "Live stream connected" : "Connecting to live stream…"}
         </p>
         <ThemeSwitcher />
-        <ReleaseAll />
       </div>
     </header>
   );

@@ -1,0 +1,16 @@
+/* Presenter's second-device page: plain and utilitarian, nothing shared with RxSolve styling. */
+.presenter-body { margin: 0; padding: 16px; color: #111; background: #f4f4f4; font: 16px/1.4 system-ui, Arial, sans-serif; }
+.presenter { max-width: 760px; margin: 0 auto; display: grid; gap: 12px; }
+.presenter h1 { margin: 0; font-size: 20px; }
+.presenter__note { margin: 0; color: #444; font-size: 14px; }
+.presenter__top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.presenter__card { display: grid; gap: 8px; padding: 12px; background: #fff; border: 1px solid #bbb; }
+.presenter__who { margin: 0; font-weight: 700; }
+.presenter__sub { margin: 0; color: #444; font-size: 14px; }
+.presenter__row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.presenter__input { flex: 1 1 280px; min-height: 40px; padding: 0 8px; font: inherit; border: 1px solid #777; }
+.presenter__btn { min-height: 40px; padding: 0 16px; font: inherit; font-weight: 600; color: #fff; background: #1b4f9c; border: 1px solid #123a74; cursor: pointer; }
+.presenter__btn:disabled { background: #8a9bb5; border-color: #8a9bb5; cursor: default; }
+.presenter__btn:focus-visible, .presenter__input:focus-visible { outline: 3px solid #0b57d0; outline-offset: 2px; }
+.presenter__msg { margin: 0; min-height: 1.2em; font-size: 14px; }
+.presenter__msg--bad { color: #a00; }

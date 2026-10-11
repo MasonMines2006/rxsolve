@@ -12,9 +12,11 @@ const PRESCRIPTIONS = [
   { id: "queue-01", rx: "RX-7F3A-0412", patientRef: "PT-7F3A", drug: "Metformin HCl 500 mg tab", ndc: "00378001801", quantity: 1000, daysSupply: 30, submittedCost: 14.5, usualCharge: 18, serviceDate: "20261010" },
   { id: "queue-02", rx: "RX-91B2-0377", patientRef: "PT-91B2", drug: "Amlodipine 5 mg tab", ndc: "00781107210", quantity: 30, daysSupply: 30, submittedCost: 9, usualCharge: 14.5, serviceDate: "20261010" },
   { id: "queue-03", rx: "RX-C42D-0958", patientRef: "PT-C42D", drug: "Metformin HCl 500 mg tab", ndc: "00378001801", quantity: 90, daysSupply: 30, submittedCost: 1.3, usualCharge: 3.25, serviceDate: "20261010" },
+  { id: "queue-04", rx: "RX-3D5E-0611", patientRef: "PT-S0007", drug: "Sertraline 50 mg tab", ndc: "16714029201", quantity: 30, daysSupply: 30, submittedCost: 10.5, usualCharge: 14, serviceDate: "20261010", pbm: "PBM_EMAIL", state: "NC", plan: "NC Commercial" },
+  { id: "queue-05", rx: "RX-8A21-0702", patientRef: "PT-S0008", drug: "Montelukast 10 mg tab", ndc: "60505260901", quantity: 30, daysSupply: 30, submittedCost: 13.5, usualCharge: 18, serviceDate: "20261010", pbm: "PBM_FAX", state: "NC", plan: "NC Commercial" },
 ] as const;
 
-type Rx = (typeof PRESCRIPTIONS)[number];
+type Rx = (typeof PRESCRIPTIONS)[number] & { pbm?: string; state?: string; plan?: string };
 type Fields = Record<string, unknown>;
 type Answer = { rx: Rx; claimRef: string; request: Fields; response: Fields };
 
@@ -41,7 +43,7 @@ export function PmsTerminal() {
       const r = await fetch("/sim/switch/claim", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...DEMO, meta: { ...DEMO.meta, patient_ref: selected.patientRef, claim_id: claimRef }, request }),
+        body: JSON.stringify({ ...DEMO, meta: { ...DEMO.meta, ...(selected.pbm && { pbm: selected.pbm, state: selected.state, plan: selected.plan }), patient_ref: selected.patientRef, claim_id: claimRef }, request }),
       });
       const payload = (await r.json()) as { response?: unknown; error?: unknown };
       if (!r.ok) throw new Error(typeof payload.error === "string" ? payload.error : `Payer switch returned ${r.status}.`);
