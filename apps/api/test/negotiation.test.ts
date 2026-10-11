@@ -11,7 +11,7 @@ import { pdfText } from "../src/adapters/fax-pdf";
 import { buildEvidence } from "../src/agents/evidence";
 import { MAX_REMEDIATIONS, onDenial, resetNegotiation, type NegotiationOpts } from "../src/agents/negotiation";
 import { renderPdf } from "../src/agents/pdf";
-import { parseReply, wholesalerConfig } from "../src/agents/wholesaler";
+import { parseReply, requestDocument, wholesalerConfig } from "../src/agents/wholesaler";
 import { config } from "../src/config";
 import { getDb, resetDb } from "../src/db";
 
@@ -208,4 +208,14 @@ test("a passed appeal deadline files nothing and contacts no one", async () => {
   const a = await onDenial(claim, ev, d, adapter, t, { now: new Date("2026-10-10T00:00:00Z") });
   expect(a.kind).toBe("EXTERNAL_APPEAL");
   expect(await getDb().transcript.find({ claim_id: claim.claim_id })).toHaveLength(0);
+});
+
+test("auto wholesaler stub uses its known value without calling the model", async () => {
+  let modelCalls = 0;
+  const result = await requestDocument(claim, "wholesaler_attestation", {
+    stub: "auto",
+    ask: (async () => { modelCalls++; throw new Error("model should not read generated stub text"); }) as never,
+  });
+  expect(result).toMatchObject({ field: "wholesaler_attestation", value: "ATT-0901" });
+  expect(modelCalls).toBe(0);
 });

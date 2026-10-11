@@ -82,6 +82,7 @@ export async function requestDocument(claim: Claim, field: string, opts: Wholesa
 
   let channel: "whatsapp" | "sms" = "whatsapp";
   let live = false;
+  let stubbedValue: string | null = null;
   let sent = await send(channel, contact, text, { counterparty: "wholesaler", claimId: claim.claim_id });
   live = sent.meta.delivered === true;
   if (!live && spectrumReady()) {
@@ -91,8 +92,8 @@ export async function requestDocument(claim: Claim, field: string, opts: Wholesa
   }
 
   if (!live && mode === "auto") {
-    const value = stubValue(claim, field);
-    const reply = field === "acquisition_cost" ? `Unit cost per invoice: $${value}` : `Attached: ${what} ${value}`;
+    stubbedValue = stubValue(claim, field);
+    const reply = field === "acquisition_cost" ? `Unit cost per invoice: $${stubbedValue}` : `Attached: ${what} ${stubbedValue}`;
     setTimeout(() => {
       void record({
         claim_id: claim.claim_id, channel, direction: "in", counterparty: "wholesaler", text: reply,
@@ -104,6 +105,7 @@ export async function requestDocument(claim: Claim, field: string, opts: Wholesa
   const reply = await wait.promise;
   wait.cancel();
   if (reply === null) return null;
+  if (stubbedValue !== null) return stubbedValue ? { field, value: stubbedValue, text: reply } : null;
   const value = await readReply(reply, field, opts.ask);
   return value ? { field, value, text: reply } : null;
 }

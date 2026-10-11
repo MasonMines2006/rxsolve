@@ -19,7 +19,7 @@ let api: ReturnType<typeof startApi>;
 
 beforeAll(() => {
   process.env.PBM_SIM_DELAY_SCALE = "0";
-  Object.assign(config, { databaseUrl: "", ledgerBackend: "local", adapterMode: "direct", photonProjectId: "", elevenlabsApiKey: "", pollIntervalMs: 10 });
+  Object.assign(config, { databaseUrl: "", agentApiKey: "", ledgerBackend: "local", adapterMode: "direct", photonProjectId: "", elevenlabsApiKey: "", elevenlabsVoiceId: "", pollIntervalMs: 10 });
   sim = startSim(0);
   api = startApi(0);
   config.pbmSimUrl = sim.url;
