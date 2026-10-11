@@ -614,6 +614,8 @@ Four entities, created at boot:
 | `RXSOLVE-PLATFORM` | Collects the 25% contingency fee |
 | `PATIENT-*` | Patient accounts for terminal-flow realism |
 
+On Classic v1, logical actor IDs map to Checking-account nicknames under the synthetic `RxSolve Demo` customer. `NessieLedger` discovers existing customer/accounts before creating missing ones; each new account receives the same $100,000 sandbox opening balance as the local double. This opening balance is sandbox setup, not recovery revenue.
+
 **Every displayed dollar is a real movement.** Remittance adjustment on approval, fee transfer on settlement. "Recovered to date" is a computed balance, not a stored counter.
 
 ```python
