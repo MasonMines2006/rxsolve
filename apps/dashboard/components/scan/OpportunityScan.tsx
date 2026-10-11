@@ -68,15 +68,15 @@ export function OpportunityScan() {
 
   return (
     <div className="scan-flow">
-      <Panel id="scan-intro" title="Historical recovery scan" aside="No claim values are sent to an LLM">
+      <Panel id="scan-intro" title="Historical recovery scan" aside="Your claim data stays in the scan">
         <div className="scan-intro">
           <div>
             <p className="scan-kicker">Find the recoverable losses already hiding in your claims.</p>
-            <p className="scan-copy">Upload a synthetic or de-identified pharmacy export. RxSolve checks every row, separates actionable losses from exceptions, and stages—not files—the claims that are ready.</p>
+            <p className="scan-copy">Try the example file or choose a pharmacy claims export. RxSolve checks the shortfall, evidence, and filing deadline for every claim.</p>
           </div>
           <div className="scan-actions">
             <button className="btn" type="button" onClick={() => void analyzeExample()} disabled={pending}>
-              {pending ? "Analyzing claims…" : "Analyze example claims"}
+              {pending ? "Checking claims..." : "Use example CSV"}
             </button>
             <label className="btn btn--ghost scan-file">
               Choose a CSV
@@ -87,10 +87,8 @@ export function OpportunityScan() {
                 onChange={(event) => void chooseFile(event.target.files?.[0])}
               />
             </label>
-            <a className="scan-download" href="/sample-claims.csv" download>Download the example CSV</a>
           </div>
         </div>
-        <p className="scan-privacy">Use synthetic or de-identified data for this demo. RxSolve parses the file in memory and does not persist the upload.</p>
         {error && <p className="scan-error" role="alert">Scan stopped: {error}</p>}
       </Panel>
 
@@ -117,7 +115,7 @@ export function OpportunityScan() {
           <Panel
             id="scan-triage"
             title="Triage"
-            aside={`${sourceName} · ${result.parser.mode === "llm_assisted" ? "header names mapped with bounded AI" : "deterministic mapping"}`}
+            aside={`${sourceName} · ${result.parser.mode === "llm_assisted" ? "columns matched automatically" : "standard column match"}`}
           >
             <div className="scan-buckets" aria-label="Claim categories">
               <span><b>{result.summary.ready_claims}</b> ready</span>
@@ -162,11 +160,11 @@ export function OpportunityScan() {
             </div>
           </Panel>
 
-          <Panel id="scan-safety" title="How bounded AI is used">
+          <Panel id="scan-safety" title="How the scan handles your file">
             <div className="scan-safety">
-              <div><b>1. Header names only</b><span>If standard aliases fail, the model sees column labels—not claim rows or dollar values.</span></div>
-              <div><b>2. Fixed vocabulary</b><span>It may map labels only to eleven allowed RxSolve fields.</span></div>
-              <div><b>3. Rules decide</b><span>Amounts, deadlines, evidence checks, classifications, and totals are deterministic.</span></div>
+              <div><b>1. Matches columns</b><span>RxSolve can match unfamiliar column names without sharing claim rows or dollar amounts.</span></div>
+              <div><b>2. Uses a fixed format</b><span>Every column must match one of eleven supported fields.</span></div>
+              <div><b>3. Applies the same rules</b><span>Code checks the amounts, deadlines, evidence, and final totals.</span></div>
             </div>
           </Panel>
         </>
