@@ -122,13 +122,13 @@ Orchestrator updates this table as work lands. Status: `not started`, `in progre
 | RES-01 | done | Cited specs and statutes; D.0 IDs verified; 835 mapping partly unverified; CVS and Express Scripts form fields and Express Scripts window not public (see STATUS) |
 | AGT-01 | done | MARGINAL resolved by agent; falls back to pharmacist exception with no key or on error (tests unrun: bun unavailable) |
 | AGT-02 | done | Entitlement via `extract` with fixture fallback; local appeal and invoice PDFs in `out/evidence/`; completeness vs spec plus state extras; tested for TN, NC, GA, default |
-| AGT-03 | done | Scripted and Playwright drivers, transcript on every call; tested against a fake door, awaits the P1 portal door per the contract in DECISIONS |
-| AGT-04 | done | Adapter and tests against a fake door; waits on the INF-03 inbox door (contract in DECISIONS) |
-| AGT-05 | done | Adapter tested against a fake fax line; PBM Sim fax door (P1) must match the contract in DECISIONS.md |
-| AGT-06 | done | Remediate and refile tested on direct and fax adapters against fake doors; wholesaler WhatsApp stubbed without creds; portal/email/fax PBM Sim doors (P1) still to be run live |
-| AGT-07 | in progress | Digest, exception asks, reply commands done and tested offline; "done when" needs a digest on a real phone with Photon creds |
+| AGT-03 | done | Scripted and Playwright drivers; scripted driver integrated over HTTP with the local PBM Sim portal door (browser mode optional) |
+| AGT-04 | done | Email adapter integrated over HTTP with the local PBM Sim inbox door, including same-thread refile |
+| AGT-05 | done | Fax adapter integrated over HTTP with the local PBM Sim fax door and PDF return parsing |
+| AGT-06 | done | Remediate/refile, bounded rebuttal, and abandonment pass through local PBM Sim doors; WhatsApp is stubbed without Photon Business credentials; PBM_FAX denies the complete first round and concedes by deterministic rule on rebuttal |
+| AGT-07 | blocked | Digest, exception asks, reply commands and exact sender authorization tested offline; live test awaits Photon project-user registration for the pharmacist phone |
 | AGT-08 | done | Stretch; call loop tested against a simulated rep over local WebSocket; no real ElevenLabs or telephony run |
-| AGT-09 | in progress | Code complete and tested offline; "done when" needs a real key and a real phone |
+| AGT-09 | blocked | Code complete and tested offline; live voice note needs an ElevenLabs key/voice ID and a Photon-registered phone |
 
 ### RES-01 | T+0 to T+3 | PBM appeal procedure and NCPDP field research
 

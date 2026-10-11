@@ -48,12 +48,12 @@ cashier (dashboard) --B1--> pbm-sim /switch/claim --tee--> api /api/feed/claim
 |---|---|
 | PBMs (portal, email, fax) | Mocked by design in `apps/pbm-sim`, modeled on public CVS Caremark, Express Scripts and OptumRx appeal procedures. No real logos. |
 | Fax transport | Mocked inside the PBM Sim |
-| Nessie | Local ledger double until INF-04 (`LEDGER_BACKEND=nessie`) |
+| Nessie | Classic v1 adapter is implemented; live ledger requires `LEDGER_BACKEND=nessie` and `NESSIE_KEY`. The local ledger remains the default until real transfers are verified |
 | TigerData | Live when `DATABASE_URL` is set (hypertables + a continuous aggregate for the recovery chart); otherwise an in-memory store |
-| Photon Spectrum (iMessage) | Live when `PHOTON_PROJECT_ID`/`PHOTON_PROJECT_SECRET` are set; otherwise the dashboard phone mock shows every message and its reply box drives the same commands (APPROVE, SKIP, DETAILS, PAUSE, RESUME, LIMIT) |
+| Photon Spectrum (iMessage) | Live when `PHOTON_PROJECT_ID`/`PHOTON_PROJECT_SECRET` are set and the pharmacist phone is registered as a project user; otherwise the dashboard phone mock shows every message and its reply box drives the same commands (APPROVE, SKIP, DETAILS, PAUSE, RESUME, LIMIT) |
 | WhatsApp / SMS to wholesaler | Stubbed unless Photon is connected with `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET` and `WHOLESALER_CONTACT`: the wholesaler replies instantly in the channel viewer (`WHOLESALER_STUB=silent` makes it stay quiet to show the abandon path) |
 | ElevenLabs (stretch) | Voice recap (AGT-09) and phone negotiator (AGT-08) are stretch goals; without keys the digest is text only; with a key the digest text is followed by a voice note (`channel.message` with `audio_url`). The phone negotiator runs offline on a stub text codec against the simulated rep (`PHONE_MODE=sim`); `PHONE_REP_URL` points it at a real audio line |
-| Real-PBM adapters | `ADAPTER_MODE=direct` files through the PBM Sim's JSON dev door until the portal/email/fax adapters land |
+| PBM adapters | `ADAPTER_MODE=real` uses the scripted portal, email, and fax adapters over HTTP to the local PBM Sim doors; `ADAPTER_MODE=direct` keeps the JSON dev-door fallback. Real PBM services remain mocked by design |
 
 Current status of each stub is in [docs/STATUS.md](docs/STATUS.md).
 

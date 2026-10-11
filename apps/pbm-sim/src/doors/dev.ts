@@ -5,16 +5,12 @@
  *   GET  /dev/appeals/:ticket             -> {status: PENDING|APPROVED|DENIED, reason, field, delta, message}
  *   POST /dev/appeals/:ticket/reply       same body as submit; restarts the response delay
  */
-import { decide } from "../engine";
-import { delayMs, persona } from "../personas";
-import { appeals, nextTicket, type Appeal } from "../store";
+import { persona } from "../personas";
+import { appeals } from "../store";
+import { createAppeal, decisionFor, refileAppeal, ticketView } from "./shared";
 
 type AppealIn = { claim_id: string; pbm: string; state: string; delta: number; fields: Record<string, unknown>; attachments: string[] };
 
-const ticketView = (a: Appeal) => ({
-  ticket_id: a.ticket_id, channel: a.channel, submitted_at: a.submitted_at,
-  expected_response_by: new Date(a.decide_at).toISOString(),
-});
 const unknown = () => Response.json({ error: "unknown ticket" }, { status: 404 });
 
 export const devRoutes = {
@@ -22,22 +18,19 @@ export const devRoutes = {
     POST: async (req: Request) => {
       const b = (await req.json()) as AppealIn;
       const p = persona(b.pbm);
-      const a: Appeal = {
-        ticket_id: nextTicket(p.ticket_prefix), claim_id: b.claim_id, pbm: b.pbm, state: b.state, channel: p.channel,
-        fields: b.fields, attachments: b.attachments, delta: b.delta, submitted_at: new Date().toISOString(),
-        decide_at: Date.now() + delayMs(b.pbm), round: 1, decision: null, history: [],
-      };
-      appeals.set(a.ticket_id, a);
-      return Response.json(ticketView(a));
+      const a = createAppeal({
+        claim_id: b.claim_id, pbm: b.pbm, state: b.state, channel: p.channel,
+        fields: b.fields, attachments: b.attachments, delta: b.delta,
+      });
+      return Response.json({ ...ticketView(a), channel: a.channel });
     },
   },
   "/dev/appeals/:ticket": {
     GET: (req: Bun.BunRequest<"/dev/appeals/:ticket">) => {
       const a = appeals.get(req.params.ticket);
       if (!a) return unknown();
-      if (Date.now() < a.decide_at) return Response.json({ status: "PENDING" });
-      a.decision ??= decide(a.pbm, a.state, a.fields, a.delta, a.round);
-      return Response.json(a.decision);
+      const decision = decisionFor(a);
+      return decision ? Response.json(decision) : Response.json({ status: "PENDING" });
     },
   },
   "/dev/appeals/:ticket/reply": {
@@ -45,9 +38,8 @@ export const devRoutes = {
       const a = appeals.get(req.params.ticket);
       if (!a) return unknown();
       const b = (await req.json()) as AppealIn;
-      a.history.push({ round: a.round, decision: a.decision });
-      Object.assign(a, { fields: b.fields, attachments: b.attachments, decision: null, round: a.round + 1, decide_at: Date.now() + delayMs(a.pbm) });
-      return Response.json(ticketView(a));
+      refileAppeal(a, { state: b.state, fields: b.fields, attachments: b.attachments, delta: b.delta });
+      return Response.json({ ...ticketView(a), channel: a.channel });
     },
   },
 };

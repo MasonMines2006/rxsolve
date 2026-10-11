@@ -17,14 +17,20 @@ let app: Awaited<ReturnType<typeof Spectrum>> | null = null;
 
 export const spectrumReady = () => app !== null;
 
-const normalize = (id: string) => (id.includes("@") ? id.trim().toLowerCase() : id.replace(/\D/g, ""));
+const normalize = (id: string) => {
+  const value = id.trim();
+  if (value.includes("@")) return value.toLowerCase();
+  const digits = value.replace(/\D/g, "");
+  return digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+};
 
 /** With PHARMACIST_PHONE set, only that handle may command the notifier; unset allows any sender. */
 export function senderAllowed(sender: string, pharmacist: string): boolean {
   if (!pharmacist) return true;
-  const a = normalize(sender);
-  const b = normalize(pharmacist);
-  return a !== "" && (a === b || a.endsWith(b) || b.endsWith(a));
+  const normalizedSender = normalize(sender);
+  const normalizedPharmacist = normalize(pharmacist);
+  if (!normalizedSender || normalizedSender !== normalizedPharmacist) return false;
+  return normalizedSender.includes("@") || normalizedSender.length >= 7;
 }
 
 /** WhatsApp Business (wholesaler channel); null without all three Meta credentials. */

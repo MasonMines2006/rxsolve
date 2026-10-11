@@ -140,7 +140,11 @@ test("DETAILS answers from claim data and unknown text gets a ledger status", as
 
 test("only the configured pharmacist handle may command the notifier", () => {
   expect(senderAllowed("+1 (555) 010-2000", "+15550102000")).toBe(true);
+  expect(senderAllowed("5550102000", "+15550102000")).toBe(true);
   expect(senderAllowed("+15559999999", "+15550102000")).toBe(false);
+  expect(senderAllowed("2000", "+15550102000")).toBe(false);
+  expect(senderAllowed("5550102001", "+15550102000")).toBe(false);
+  expect(senderAllowed("1", "1")).toBe(false);
   expect(senderAllowed("Me@Example.com", "me@example.com")).toBe(true);
   expect(senderAllowed("anyone", "")).toBe(true);
   expect(senderAllowed("", "+15550102000")).toBe(false);

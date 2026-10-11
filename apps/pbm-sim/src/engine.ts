@@ -12,11 +12,15 @@ export type Decision = {
 export function decide(pbm: string, state: string, fields: Record<string, unknown>, delta: number, round: number): Decision {
   const required = requiredFields(pbm, state);
   const missing = required.filter((f) => fields[f] === null || fields[f] === undefined || fields[f] === "");
-  const completeness = 1 - missing.length / required.length;
+  const completeness = required.length === 0 ? 1 : 1 - missing.length / required.length;
   const p = persona(pbm);
   if (missing.length === 0) {
     if (p.deny_first_then_approve_on_rebuttal && round === 1) {
-      // TODO(INF-06): deny as "disputed" first, concede on rebuttal (the phone-escalation path). Approves for now.
+      return {
+        status: "DENIED",
+        reason: "disputed",
+        message: "Appeal denied: reimbursement rate disputed. Please submit a rebuttal for review.",
+      };
     }
     return { status: "APPROVED", delta: Math.round(delta * 100) / 100, message: `MAC appeal approved. Adjustment $${delta.toFixed(2)} will post on the next remittance.` };
   }

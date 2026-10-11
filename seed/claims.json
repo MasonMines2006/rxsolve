@@ -1,5 +1,5 @@
 {
-  "_note": "Switch requests replayed through the PBM Sim by scripts/seed.ts. 401-D1 (date of service) is stamped with today's date by the switch so every claim is inside its appeal window. INF-03 grows this to 60 claims (~18 underwater, 3 marginal).",
+  "_note": "Six hand-curated demo templates replayed through the PBM Sim by scripts/seed.ts. seed/expand.ts deterministically expands them to 60 claims (18 underwater, 39 clear, 3 marginal) with opaque patient_ref values. 401-D1 is stamped with today's date so every claim is inside its appeal window.",
   "claims": [
     {"claim_id": "RXS-0001", "expect": "SETTLED (demo: portal, TN attestation denial, remediation)",
      "meta": {"pbm": "PBM_PORTAL", "pharmacy_id": "PH-MEADOWBROOK", "state": "TN", "plan": "TN Part D", "patient_ref": "PT-7F3A"},
