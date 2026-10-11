@@ -57,3 +57,20 @@ Focused coverage after hardening was 93.18% line coverage for `apps/api/src/oppo
 - Staging changed only local preview state and selected the five `READY` claims.
 - Responsive table and the Frutiger Aero and dark themes were visually inspected.
 - No screenshot baseline exists, so automated visual-regression comparison is inconclusive.
+
+## Intake copy and control follow-up
+
+On 2026-10-11, a follow-up journey required the scan to offer the bundled example directly, center the custom file control, remove the download and helper note, and use simpler copy without em dashes.
+
+RED was captured in commit `416f69f`. Server-rendering `OpportunityScan` failed because the page still contained “Analyze example claims,” the download link, `scan-privacy`, and an em dash.
+
+GREEN was captured in commit `1e8b9c3`:
+
+```text
+bun test apps/dashboard/test/opportunityScan.test.ts
+3 pass, 0 fail, 12 expect() calls
+```
+
+The focused coverage run passed with 81.61% aggregate line coverage across the rendered component, panel, and scan helper. The complete repository then passed with 156 tests and 786 assertions, and all four workspaces passed type checking.
+
+Browser QA confirmed that both controls are centered, **Use example CSV** loads the ten bundled claims directly, the revised page has no browser warnings or errors, and the main dashboard shows all 60 synthetic feed claims after reseeding. The home page appeared empty because the API uses in-memory storage by default and its development restart cleared the previous seed; no example fixture was removed from the repository.
