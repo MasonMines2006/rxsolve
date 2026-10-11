@@ -2,7 +2,13 @@ import { expect, test } from "bun:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { OpportunityScan } from "../components/scan/OpportunityScan";
-import { EXAMPLE_SCANS, readyClaimIds, scanStatusPresentation } from "../lib/opportunityScan";
+import {
+  EXAMPLE_SCANS,
+  MINIMUM_SCAN_DURATION_MS,
+  readyClaimIds,
+  remainingScanDelay,
+  scanStatusPresentation,
+} from "../lib/opportunityScan";
 
 test("scan statuses have plain-language labels and semantic tones", () => {
   expect(scanStatusPresentation("READY")).toEqual({ label: "Ready for RxSolve", tone: "good" });
@@ -19,6 +25,12 @@ test("only ready claims are staged for the next RxSolve step", () => {
     { claim_id: "C", status: "READY" },
     { claim_id: "D", status: "MISSING_DATA" },
   ])).toEqual(["A", "C"]);
+});
+
+test("scan feedback lasts long enough to be visible without delaying slow work", () => {
+  expect(MINIMUM_SCAN_DURATION_MS).toBe(1_200);
+  expect(remainingScanDelay(1_000, 1_500)).toBe(700);
+  expect(remainingScanDelay(1_000, 2_500)).toBe(0);
 });
 
 test("scan intake offers five built-in scenarios directly with concise copy", () => {
