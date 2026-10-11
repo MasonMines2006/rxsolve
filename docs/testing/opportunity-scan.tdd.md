@@ -74,3 +74,9 @@ bun test apps/dashboard/test/opportunityScan.test.ts
 The focused coverage run passed with 81.61% aggregate line coverage across the rendered component, panel, and scan helper. The complete repository then passed with 156 tests and 786 assertions, and all four workspaces passed type checking.
 
 Browser QA confirmed that both controls are centered, **Use example CSV** loads the ten bundled claims directly, the revised page has no browser warnings or errors, and the main dashboard shows all 60 synthetic feed claims after reseeding. The home page appeared empty because the API uses in-memory storage by default and its development restart cleared the previous seed; no example fixture was removed from the repository.
+
+## Example result visibility follow-up
+
+A second follow-up found that the example request completed, but its results opened below the mobile viewport, making the button appear inactive. RED commit `fd50d11` defined the intended action hierarchy and result target. GREEN commit `ba9bc1d` makes **Choose a CSV** the primary control, marks the example button as controlling `scan-summary`, and scrolls the completed summary into view.
+
+The focused suite passed with 3 tests and 14 assertions at 82.47% aggregate line coverage. Browser QA clicked the example from a fresh page and landed on the $60.95 recovery summary with no console warnings or errors. The complete repository passed with 156 tests and 788 assertions, and all four workspaces passed type checking.
