@@ -56,6 +56,17 @@ export type Claim = z.infer<typeof Claim>;
 export const VerdictKind = z.enum(["CLEAR", "MARGINAL", "UNDERWATER"]);
 export type VerdictKind = z.infer<typeof VerdictKind>;
 
+/** Why the Watcher reached its verdict; lets the status tree show which branch a claim took. */
+export const VerdictReason = z.enum([
+  "no_invoice", // CLEAR: no acquisition cost to prove against
+  "paid_at_or_above_cost", // CLEAR: delta <= 0
+  "marginal_resolved_clear", // CLEAR: MARGINAL band, agent called it immaterial
+  "marginal_resolved_underwater", // UNDERWATER: MARGINAL band, agent called it worth appealing
+  "marginal_unresolved", // MARGINAL: no agent key or model error, a human decides
+  "underpaid", // UNDERWATER: delta above the MARGINAL band
+]);
+export type VerdictReason = z.infer<typeof VerdictReason>;
+
 export const Verdict = z.object({
   claim_id: z.string(),
   verdict: VerdictKind,
@@ -63,6 +74,7 @@ export const Verdict = z.object({
   benchmark_used: z.string().nullable(),
   appeal_deadline: isoDate.nullable(),
   confidence: z.number(),
+  reason: VerdictReason.optional(), // additive; rows stored before it existed omit it
 });
 export type Verdict = z.infer<typeof Verdict>;
 

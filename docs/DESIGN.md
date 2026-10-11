@@ -249,9 +249,12 @@ All twelve IDs in the example match the payer sheet. The header response status 
   "delta": 6.40,
   "benchmark_used": "acquisition_cost",
   "appeal_deadline": "2026-03-23",
-  "confidence": 0.97
+  "confidence": 0.97,
+  "reason": "underpaid"
 }
 ```
+
+`reason` is one of `no_invoice`, `paid_at_or_above_cost`, `marginal_resolved_clear`, `marginal_resolved_underwater`, `marginal_unresolved`, `underpaid`. It is optional on parse so verdicts stored before it existed still load.
 
 **Evidence packet**
 
