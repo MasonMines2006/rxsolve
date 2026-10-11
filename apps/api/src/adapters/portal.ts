@@ -10,6 +10,7 @@ import type { Claim, Decision, Evidence, Reply, Ticket } from "@rxsolve/contract
 import { config } from "../config";
 import { record } from "../transcript";
 import { EVIDENCE_DIR } from "../agents/packet";
+import { escapeHtml, safeId, writeArtifact } from "../artifacts";
 import { spec } from "../reference";
 import type { ChannelAdapter } from "./index";
 
@@ -27,6 +28,21 @@ export type PortalStatus = {
   delta: number | null;
   message: string | null;
 };
+
+/** One driver run: the parsed status plus whatever snapshot material the driver captured. */
+type Run = { s: PortalStatus; html?: string; formPng?: Uint8Array; statusPng?: Uint8Array };
+
+/** Drops external stylesheets and scripts so a stored status page renders standalone. */
+export const standalone = (html: string) =>
+  html.replace(/<script\b[\s\S]*?<\/script>/gi, "").replace(/<link\b[^>]*>/gi, "");
+
+/** Self-contained HTML of the filled form: title, submitted fields, attached evidence names. */
+export function formSnapshot(pbm: string, claim: string, ticket: string, fields: Record<string, string>, names: string[]): string {
+  const rows = Object.entries(fields).map(([k, v]) => `<tr><th>${escapeHtml(k)}</th><td>${escapeHtml(v)}</td></tr>`).join("");
+  const files = names.map((n) => `<li>${escapeHtml(n)}</li>`).join("") || "<li>none</li>";
+  const title = `${escapeHtml(pbm)} portal form, claim ${escapeHtml(claim)}, ticket ${escapeHtml(ticket)}`;
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title><style>body{font:14px system-ui;margin:24px}th{text-align:left;padding:2px 12px 2px 0}</style></head><body><h1>${title}</h1><table>${rows}</table><h2>Attached evidence</h2><ul>${files}</ul></body></html>`;
+}
 
 const SCALAR = (v: unknown): v is string | number | boolean => ["string", "number", "boolean"].includes(typeof v);
 
@@ -93,7 +109,7 @@ export class PortalAdapter implements ChannelAdapter {
 
   // ---- scripted driver (HTTP, no browser)
 
-  private async scriptedFile(pbm: string, path: string, fields: Record<string, string>, names: string[]) {
+  private async scriptedFile(pbm: string, path: string, fields: Record<string, string>, names: string[]): Promise<Run> {
     const form = new FormData();
     for (const [k, v] of Object.entries(fields)) form.set(k, v);
     for (const f of this.files(names)) {
@@ -109,13 +125,14 @@ export class PortalAdapter implements ChannelAdapter {
     }
     if (!r.ok) throw new Error(`portal POST ${path}: ${r.status}`);
     const html = await r.text();
-    return parseStatus(html, attr(html, "ticket") ?? "");
+    return { s: parseStatus(html, attr(html, "ticket") ?? ""), html };
   }
 
-  private async scriptedStatus(pbm: string, ticket: string, full?: string): Promise<PortalStatus> {
+  private async scriptedStatus(pbm: string, ticket: string, full?: string): Promise<Run> {
     const r = await this.o.fetch(full ?? this.url(pbm, `/status/${ticket}`));
     if (!r.ok) throw new Error(`portal status ${ticket}: ${r.status}`);
-    return parseStatus(await r.text(), ticket);
+    const html = await r.text();
+    return { s: parseStatus(html, ticket), html };
   }
 
   // ---- browser driver (Playwright, imported lazily so tests and the scripted path need no browser)
@@ -136,7 +153,16 @@ export class PortalAdapter implements ChannelAdapter {
     return parseStatus(await page.content(), ticketFromUrl);
   }
 
-  private async browserFile(pbm: string, path: string, fields: Record<string, string>, names: string[]) {
+  private async shot(page: any): Promise<Uint8Array | undefined> {
+    try {
+      return await page.screenshot({ fullPage: true });
+    } catch (e) {
+      console.warn(`portal screenshot failed: ${(e as Error).message}`);
+      return undefined;
+    }
+  }
+
+  private async browserFile(pbm: string, path: string, fields: Record<string, string>, names: string[]): Promise<Run> {
     return this.withPage(async (page) => {
       await page.goto(this.url(pbm, path));
       for (const [k, v] of Object.entries(fields)) {
@@ -145,15 +171,18 @@ export class PortalAdapter implements ChannelAdapter {
       }
       const real = this.files(names).filter((f) => existsSync(f.path)).map((f) => f.path);
       if (real.length) await page.setInputFiles('input[type="file"]', real);
+      const formPng = await this.shot(page);
       await Promise.all([page.waitForURL(/\/status\//), page.click('[type="submit"]')]);
-      return this.pageStatus(page, new URL(page.url()).pathname.split("/").pop()!);
+      const s = await this.pageStatus(page, new URL(page.url()).pathname.split("/").pop()!);
+      return { s, html: await page.content(), formPng, statusPng: await this.shot(page) };
     });
   }
 
-  private async browserStatus(pbm: string, ticket: string) {
+  private async browserStatus(pbm: string, ticket: string): Promise<Run> {
     return this.withPage(async (page) => {
       await page.goto(this.url(pbm, `/status/${ticket}`));
-      return this.pageStatus(page, ticket);
+      const s = await this.pageStatus(page, ticket);
+      return { s, html: await page.content(), statusPng: await this.shot(page) };
     });
   }
 
@@ -173,22 +202,43 @@ export class PortalAdapter implements ChannelAdapter {
     };
   }
 
+  /** Writes the filled-form snapshot (HTML, plus a PNG in browser mode); returns the names written. */
+  private async formArtifacts(pbm: string, claim: string, ticket: string, fields: Record<string, string>, names: string[], run: Run) {
+    const base = `portal_form_${safeId(claim)}_${safeId(ticket)}`;
+    const out = [await writeArtifact(this.o.evidenceDir, `${base}.html`, formSnapshot(pbm, claim, ticket, fields, names))];
+    if (run.formPng) out.push(await writeArtifact(this.o.evidenceDir, `${base}.png`, run.formPng));
+    return out.filter((n): n is string => !!n);
+  }
+
+  /** Writes the status snapshots for a decided ticket; returns the names written. */
+  private async statusArtifacts(claim: string, ticket: string, run: Run) {
+    const base = `portal_status_${safeId(claim)}_${safeId(ticket)}`;
+    const out: (string | null)[] = [];
+    if (run.html) out.push(await writeArtifact(this.o.evidenceDir, `${base}.html`, standalone(run.html)));
+    if (run.statusPng) out.push(await writeArtifact(this.o.evidenceDir, `${base}.png`, run.statusPng));
+    return out.filter((n): n is string => !!n);
+  }
+
   async submit(claim: Claim, ev: Evidence): Promise<Ticket> {
     const fields = fieldMap(claim.pbm, ev);
-    const ticket = this.toTicket(claim, await this.file(claim.pbm, "/appeal", fields, ev.attachments));
+    const run = await this.file(claim.pbm, "/appeal", fields, ev.attachments);
+    const ticket = this.toTicket(claim, run.s);
+    const snaps = await this.formArtifacts(claim.pbm, claim.claim_id, ticket.ticket_id, fields, ev.attachments, run);
     await record({
       claim_id: claim.claim_id, channel: "portal", direction: "out", counterparty: claim.pbm,
       text: `Portal form filed (${this.o.mode}): ${Object.keys(fields).length} fields, ${ev.attachments.length} attachments, $${ev.delta.toFixed(2)}`,
-      attachments: ev.attachments, meta: { ticket_id: ticket.ticket_id, mode: this.o.mode, form: fields },
+      attachments: [...ev.attachments, ...snaps], meta: { ticket_id: ticket.ticket_id, mode: this.o.mode, form: fields },
     });
     return ticket;
   }
 
   async poll(ticket: Ticket): Promise<Decision | null> {
-    const s = await this.status(ticket.pbm, ticket.ticket_id);
+    const run = await this.status(ticket.pbm, ticket.ticket_id);
+    const s = run.s;
     if (s.status === "PENDING") return null;
     await record({
       claim_id: ticket.claim_id, channel: "portal", direction: "in", counterparty: ticket.pbm,
+      attachments: await this.statusArtifacts(ticket.claim_id, ticket.ticket_id, run),
       text: s.message ?? s.status, meta: { ticket_id: ticket.ticket_id, mode: this.o.mode, status: s.status },
     });
     return {
@@ -200,10 +250,12 @@ export class PortalAdapter implements ChannelAdapter {
   async reply(ticket: Ticket, msg: Reply): Promise<Ticket> {
     const fields = fieldMap(ticket.pbm, msg.evidence);
     if (msg.note) fields.note = msg.note;
-    const next = this.toTicket(ticket, await this.file(ticket.pbm, `/status/${ticket.ticket_id}/reply`, fields, msg.evidence.attachments));
+    const run = await this.file(ticket.pbm, `/status/${ticket.ticket_id}/reply`, fields, msg.evidence.attachments);
+    const next = this.toTicket(ticket, run.s);
+    const snaps = await this.formArtifacts(ticket.pbm, ticket.claim_id, next.ticket_id, fields, msg.evidence.attachments, run);
     await record({
       claim_id: ticket.claim_id, channel: "portal", direction: "out", counterparty: ticket.pbm,
-      text: msg.note ?? "Message center reply with the requested document", attachments: msg.evidence.attachments,
+      text: msg.note ?? "Message center reply with the requested document", attachments: [...msg.evidence.attachments, ...snaps],
       meta: { ticket_id: next.ticket_id, mode: this.o.mode, form: fields },
     });
     return next;

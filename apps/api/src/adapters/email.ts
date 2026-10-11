@@ -6,6 +6,7 @@
 import { basename, join } from "node:path";
 import type { Claim, Decision, DenialReason, Evidence, Reply, Ticket } from "@rxsolve/contracts";
 import { EVIDENCE_DIR } from "../agents/packet";
+import { safeId, writeArtifact } from "../artifacts";
 import { config } from "../config";
 import { record } from "../transcript";
 import type { ChannelAdapter } from "./index";
@@ -76,9 +77,11 @@ export class EmailAdapter implements ChannelAdapter {
 
   private async out(t: Pick<Ticket, "claim_id" | "pbm">, ev: Evidence, intro: string, thread?: string): Promise<Ticket> {
     const { door, msg, missing } = await this.send(t.claim_id, t.pbm, ev, intro, thread);
+    const sent = `Subject: ${msg.subject}\nTo: ${msg.to}\nIn-Reply-To: ${msg.in_reply_to ?? ""}\n\n${msg.body}\nAttachments: ${ev.attachments.join(", ") || "none"}\n`;
+    const snap = await writeArtifact(this.dir, `email_sent_${safeId(t.claim_id)}_${safeId(door.thread_id)}.txt`, sent);
     await record({
       claim_id: t.claim_id, channel: "email", direction: "out", counterparty: t.pbm,
-      text: `${msg.subject}\n\n${msg.body}`, attachments: ev.attachments,
+      text: `${msg.subject}\n\n${msg.body}`, attachments: snap ? [...ev.attachments, snap] : ev.attachments,
       meta: { ticket_id: door.thread_id, subject: msg.subject, fields: ev.fields, missing_attachments: missing },
     });
     return { claim_id: t.claim_id, pbm: t.pbm, channel: "email", ticket_id: door.thread_id, submitted_at: door.submitted_at, expected_response_by: door.expected_response_by };
@@ -95,8 +98,13 @@ export class EmailAdapter implements ChannelAdapter {
     const m = (await r.json()) as Inbound;
     if (!m.body || m.status === "PENDING") return null;
     const d = parseReply(ticket.claim_id, ticket.ticket_id, m.body);
+    const snap = await writeArtifact(
+      this.dir, `email_reply_${safeId(ticket.claim_id)}_${safeId(ticket.ticket_id)}.txt`,
+      `Subject: ${m.subject ?? "Re: MAC appeal"}\nFrom: ${ticket.pbm}\nIn-Reply-To: ${ticket.ticket_id}\n\n${m.body}\n`,
+    );
     await record({
       claim_id: ticket.claim_id, channel: "email", direction: "in", counterparty: ticket.pbm,
+      attachments: snap ? [snap] : [],
       text: `${m.subject ?? "Re: MAC appeal"}\n\n${m.body}`, meta: { ticket_id: ticket.ticket_id, subject: m.subject ?? null },
     });
     return d;

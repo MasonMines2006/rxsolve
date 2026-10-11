@@ -81,3 +81,18 @@ test("poll parses a named-field denial and reply refiles on the same thread", as
 test("unparseable reply throws", () => {
   expect(() => parseReply("C1", "T", "hello there")).toThrow();
 });
+
+test("sent mail and PBM reply are recorded as txt artifacts", async () => {
+  const a = adapter();
+  const t = await a.submit(claim, ev);
+  replyBody = "Status: APPROVED\nApproved amount: $12.50\n";
+  await a.poll(t);
+  const sent = await Bun.file(join(dir, "email_sent_C1_EML-0001.txt")).text();
+  expect(sent).toContain("Subject: MAC appeal C1");
+  expect(sent).toContain("To: appeals@pbm_email.example");
+  expect(sent).toContain("Attachments: appeal_C1.pdf, gone_C1.pdf");
+  expect(await Bun.file(join(dir, "email_reply_C1_EML-0001.txt")).text()).toContain("Approved amount");
+  const rows = await getDb().transcript.find({ claim_id: "C1" });
+  expect(rows[0]!.attachments).toEqual(["appeal_C1.pdf", "gone_C1.pdf", "email_sent_C1_EML-0001.txt"]);
+  expect(rows[1]!.attachments).toEqual(["email_reply_C1_EML-0001.txt"]);
+});

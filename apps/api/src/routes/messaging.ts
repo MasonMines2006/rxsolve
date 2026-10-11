@@ -1,5 +1,6 @@
 /** Pharmacist + wholesaler messaging endpoints. Owner: P2. */
 import type { MessageChannel } from "@rxsolve/contracts";
+import { serveArtifact } from "../artifacts";
 import { handleReply, sendDigest } from "../agents/notifier";
 import { config } from "../config";
 import { send } from "../messaging";
@@ -15,6 +16,9 @@ export async function handleInbound(m: { channel: MessageChannel; sender: string
 }
 
 export const messagingRoutes = {
+  /** Step artifacts (evidence PDFs, fax pages, portal and email snapshots) from the evidence dir. */
+  "/api/artifacts/:name": { GET: (req: Request & { params: { name: string } }) => serveArtifact(req.params.name) },
+
   /** Demo: the end-of-day digest, triggered by hand. */
   "/api/digest": { POST: async () => Response.json(await sendDigest(config.pharmacyId)) },
 
