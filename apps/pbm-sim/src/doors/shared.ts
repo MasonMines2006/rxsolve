@@ -13,6 +13,23 @@ export function isKnownPbm(pbm: string): boolean {
   }
 }
 
+/** PBM_SIM_HOLD=1 keeps each response pending until released (presenter control), capped by PBM_SIM_HOLD_MAX_S. */
+const holdOn = () => process.env.PBM_SIM_HOLD === "1";
+const holdMs = () => Number(process.env.PBM_SIM_HOLD_MAX_S ?? 20) * 1000;
+
+function startHold(appeal: Appeal) {
+  appeal.held = holdOn();
+  appeal.hold_until = appeal.held ? Date.now() + holdMs() : 0;
+}
+
+/** Lets a held appeal's response go out now; false when it was not held. */
+export function releaseAppeal(appeal: Appeal): boolean {
+  if (!appeal.held) return false;
+  appeal.held = false;
+  appeal.decide_at = Math.min(appeal.decide_at, Date.now());
+  return true;
+}
+
 export function createAppeal(draft: AppealDraft): Appeal {
   const now = Date.now();
   const appeal: Appeal = {
@@ -22,8 +39,11 @@ export function createAppeal(draft: AppealDraft): Appeal {
     decide_at: now + delayMs(draft.pbm),
     round: 1,
     decision: null,
+    held: false,
+    hold_until: 0,
     history: [],
   };
+  startHold(appeal);
   appeals.set(appeal.ticket_id, appeal);
   return appeal;
 }
@@ -38,12 +58,14 @@ export function refileAppeal(appeal: Appeal, draft: Pick<AppealDraft, "state" | 
   appeal.decide_at = Date.now() + delayMs(appeal.pbm);
   appeal.round += 1;
   appeal.decision = null;
+  startHold(appeal);
   return appeal;
 }
 
 export function decisionFor(appeal: Appeal): Decision | null {
   if (appeal.decision) return appeal.decision;
-  if (Date.now() < appeal.decide_at) return null;
+  if (appeal.held && Date.now() >= appeal.hold_until) releaseAppeal(appeal);
+  if (appeal.held || Date.now() < appeal.decide_at) return null;
   appeal.decision = decide(appeal.pbm, appeal.state, appeal.fields, appeal.delta, appeal.round);
   return appeal.decision;
 }

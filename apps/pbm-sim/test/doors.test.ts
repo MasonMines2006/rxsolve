@@ -148,3 +148,62 @@ test("fax return is a parseable PDF and PBM_FAX concedes only on the rebuttal ro
   expect(lines).toContain("Status: APPROVED");
   expect(lines).toContain("Approved amount: $6.40");
 });
+
+test("hold mode keeps a response pending until released, and release-all counts held tickets", async () => {
+  process.env.PBM_SIM_HOLD = "1";
+  process.env.PBM_SIM_HOLD_MAX_S = "60";
+  try {
+    const file = async (claimId: string) => {
+      const r = await fetch(`${sim.url}/dev/appeals`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          claim_id: claimId, pbm: "PBM_PORTAL", state: "TN", delta: 6.4, fields: FULL_FIELDS, attachments: ["invoice.pdf"],
+        }),
+      });
+      return (await r.json() as { ticket_id: string }).ticket_id;
+    };
+    const status = async (ticket: string) => (await (await fetch(`${sim.url}/dev/appeals/${ticket}`)).json() as { status: string }).status;
+
+    const a = await file("RXS-HOLD-1");
+    expect(await status(a)).toBe("PENDING");
+    const released = await fetch(`${sim.url}/dev/appeals/${a}/release`, { method: "POST" });
+    expect(await released.json()).toEqual({ released: true, ticket_id: a });
+    expect(await status(a)).not.toBe("PENDING");
+    const again = await fetch(`${sim.url}/dev/appeals/${a}/release`, { method: "POST" });
+    expect((await again.json() as { released: boolean }).released).toBe(false);
+
+    const b = await file("RXS-HOLD-2");
+    const c = await file("RXS-HOLD-3");
+    expect(await status(b)).toBe("PENDING");
+    const all = await fetch(`${sim.url}/dev/appeals/release-all`, { method: "POST" });
+    expect(((await all.json()) as { released: number }).released).toBeGreaterThanOrEqual(2);
+    expect(await status(b)).not.toBe("PENDING");
+    expect(await status(c)).not.toBe("PENDING");
+
+    expect((await fetch(`${sim.url}/dev/appeals/NOPE-1/release`, { method: "POST" })).status).toBe(404);
+  } finally {
+    delete process.env.PBM_SIM_HOLD;
+    delete process.env.PBM_SIM_HOLD_MAX_S;
+  }
+});
+
+test("a held response auto-releases after the hold cap", async () => {
+  process.env.PBM_SIM_HOLD = "1";
+  process.env.PBM_SIM_HOLD_MAX_S = "0";
+  try {
+    const r = await fetch(`${sim.url}/dev/appeals`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        claim_id: "RXS-HOLD-4", pbm: "PBM_PORTAL", state: "TN", delta: 6.4, fields: FULL_FIELDS, attachments: ["invoice.pdf"],
+      }),
+    });
+    const ticket = (await r.json() as { ticket_id: string }).ticket_id;
+    const status = (await (await fetch(`${sim.url}/dev/appeals/${ticket}`)).json() as { status: string }).status;
+    expect(status).not.toBe("PENDING");
+  } finally {
+    delete process.env.PBM_SIM_HOLD;
+    delete process.env.PBM_SIM_HOLD_MAX_S;
+  }
+});

@@ -5,6 +5,8 @@ export type Appeal = {
   ticket_id: string; claim_id: string; pbm: string; state: string; channel: string;
   fields: Record<string, unknown>; attachments: string[]; delta: number;
   submitted_at: string; decide_at: number; round: number; decision: Decision | null;
+  /** Demo hold mode: the decision stays pending until released or `hold_until` passes. */
+  held: boolean; hold_until: number;
   history: { round: number; decision: Decision | null }[];
 };
 

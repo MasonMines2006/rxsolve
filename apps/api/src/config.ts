@@ -27,5 +27,9 @@ export const config = {
 
   feePct: 0.25,
   pollIntervalMs: num("POLL_INTERVAL_MS", 500),
-  resolutionTimeoutMs: num("RESOLUTION_TIMEOUT_MS", 120_000), // demo-scale stand-in for the statutory deadline
+  // Demo-scale stand-in for the statutory deadline; under PBM_SIM_HOLD it never fires before a hold can end.
+  resolutionTimeoutMs: Math.max(
+    num("RESOLUTION_TIMEOUT_MS", 120_000),
+    process.env.PBM_SIM_HOLD === "1" ? (num("PBM_SIM_HOLD_MAX_S", 20) + 30) * 1000 : 0,
+  ),
 };

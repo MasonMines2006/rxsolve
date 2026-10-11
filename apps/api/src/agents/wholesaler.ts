@@ -21,9 +21,11 @@ export type StubMode = "auto" | "silent" | "manual";
 export type WholesalerOpts = { ask?: Ask; timeoutMs?: number; stub?: StubMode };
 
 /** Mutable like `config`: tests and the demo operator tune the wait and the stub behaviour. */
+const stubMode = (process.env.WHOLESALER_STUB ?? "auto") as StubMode;
 export const wholesalerConfig = {
-  timeoutMs: Number(process.env.WHOLESALER_TIMEOUT_MS ?? 30_000),
-  stub: (process.env.WHOLESALER_STUB ?? "auto") as StubMode,
+  // A presenter types the reply in manual mode, so the wait defaults to two minutes there.
+  timeoutMs: Number(process.env.WHOLESALER_TIMEOUT_MS ?? (stubMode === "manual" ? 120_000 : 30_000)),
+  stub: stubMode,
 };
 
 /** Contact for the claim's wholesaler: WHOLESALER_CONTACT, else a `wholesaler_contact` on the invoice fixture. */
