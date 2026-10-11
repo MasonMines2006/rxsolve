@@ -133,3 +133,27 @@ Validation results:
 - Browser check on the mixed example: the queue held 6 claims with 5 preselected. Adding HIST-003 gave 5 auto-file ($60.95) and 1 waiting ($0.30). A $5 limit moved three claims to waiting (2 auto-file at $7.95, 4 waiting at $53.30). An invalid limit showed the error text and hid the totals. No console errors.
 
 Not covered: the preview is not compared against the API's stored policy, and nothing is handed to the live claim pipeline.
+
+## Scan handoff into the claim pipeline
+
+Selected claims from the review queue can now be sent to the existing orchestrator through `POST /api/opportunity-scan/handoff`.
+
+RED: `apps/api/test/scan-handoff.test.ts` was written first and failed because `../src/scan-handoff` did not exist. The dashboard tests for the sixth example, the send-button rules and the `ScanHandoff` component then failed with `Cannot find module '../components/scan/ScanHandoff'`.
+
+GREEN: `apps/api/src/scan-handoff.ts`, `apps/api/src/routes/scan.ts`, three optional CSV columns in `opportunity-scan.ts`, and on the dashboard `ScanHandoff.tsx`, `buildHandoffExampleCsv` and `handoffBlocker`.
+
+Two existing assertions changed because the requirement changed: the intake now offers six examples instead of five, and the policy panel contains a fourth checkbox (the handoff confirmation).
+
+What the tests cover:
+
+- Conversion: cost is taken from the invoice fixture even when the file claims a different cost; the Rx number travels in an NCPDP block; every rejection reason; the last day of the appeal window is still accepted.
+- Over real HTTP with the PBM Sim and local ledger: an in-policy claim reaches `SETTLED` with the right ledger total; an over-limit claim and a needs-review claim stop at `EXCEPTION` with no appeal filed; the typed limit is saved as the policy; rejected rows are never stored; an existing claim is never overwritten or settled twice; malformed requests return 400.
+- The six-row handoff example run end to end: three claims settle (email, fax after rebuttal, portal after the TN attestation remediation), one stops over the limit, one stops as marginal, one is rejected for having no invoice, and $16.50 is recovered.
+
+Validation results:
+
+- `scan-handoff.test.ts` passed 31 tests. The full repository passed 204 tests with 1,032 assertions across 27 files.
+- All four workspaces passed type checking.
+- Browser check on the running stack (local doubles): the handoff example was scanned, five ready claims were sent with a $100 limit, four were accepted and HAND-005 was rejected. HAND-001, HAND-002 and HAND-004 reached `SETTLED`, HAND-003 stopped at `EXCEPTION` for being over the limit, and `/claims/HAND-004` rendered its status tree. No console errors.
+
+Not covered: the Nessie ledger, TigerData persistence, and the real portal, email and fax adapters (`ADAPTER_MODE=real`) were not exercised with handed-over claims.
