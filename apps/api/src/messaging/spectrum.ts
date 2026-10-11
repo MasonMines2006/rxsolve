@@ -65,6 +65,16 @@ export async function startSpectrum(onInbound: Inbound): Promise<boolean> {
   return true;
 }
 
+/** iMessage targets go out as E.164: a bare US number gets +1; email handles and other formats pass through. */
+export function toTarget(to: string): string {
+  const t = to.trim();
+  if (t.includes("@")) return t;
+  const digits = t.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  return t;
+}
+
 export async function sendViaSpectrum(channel: MessageChannel, to: string, text: string, audio?: Uint8Array) {
   if (!app) throw new Error("spectrum not started");
   if (channel === "whatsapp") {
@@ -75,7 +85,7 @@ export async function sendViaSpectrum(channel: MessageChannel, to: string, text:
   }
   if (channel !== "imessage" && channel !== "sms") throw new Error(`${channel} provider not configured`);
   const im = imessage(app);
-  const space = await im.space.create(await im.user(to));
+  const space = await im.space.create(await im.user(toTarget(to)));
   await space.send(text);
   if (audio) await space.send(voice(Buffer.from(audio), { name: "recap.mp3", mimeType: "audio/mpeg" }));
 }
@@ -84,6 +94,6 @@ export async function sendViaSpectrum(channel: MessageChannel, to: string, text:
 export async function sendVoiceViaSpectrum(to: string, audio: Uint8Array) {
   if (!app) throw new Error("spectrum not started");
   const im = imessage(app);
-  const space = await im.space.create(await im.user(to));
+  const space = await im.space.create(await im.user(toTarget(to)));
   await space.send(voice(Buffer.from(audio), { name: "recap.mp3", mimeType: "audio/mpeg" }));
 }

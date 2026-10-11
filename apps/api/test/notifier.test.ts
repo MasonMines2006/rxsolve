@@ -187,3 +187,12 @@ test("TTS failure or missing key leaves the text digest intact", async () => {
   setSpeaker(null);
   expect(await tts("hi")).toBeNull(); // no ELEVENLABS_API_KEY
 });
+
+test("iMessage targets are normalized to E.164 before sending", async () => {
+  const { toTarget } = await import("../src/messaging/spectrum");
+  expect(toTarget("9194558291")).toBe("+19194558291");
+  expect(toTarget("+19194558291")).toBe("+19194558291");
+  expect(toTarget("1 (919) 455-8291")).toBe("+19194558291");
+  expect(toTarget("pharmacist@example.com")).toBe("pharmacist@example.com");
+  expect(toTarget("")).toBe("");
+});

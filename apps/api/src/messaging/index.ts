@@ -38,7 +38,7 @@ export async function send(
       await sendViaSpectrum(channel, to, text, opts.audio?.bytes);
       meta.delivered = true;
     } catch (e) {
-      console.warn("spectrum send failed, dashboard only:", e);
+      console.warn(`spectrum send failed to ${to} on ${channel}, dashboard only:`, e);
       meta.delivered = false;
     }
   }
